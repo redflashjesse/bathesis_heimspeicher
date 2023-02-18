@@ -9,6 +9,7 @@ import glob
 from matplotlib.ticker import AutoLocator
 from matplotlib.lines import Line2D
 import matplotlib.lines as mlines
+import pickle
 
 # set dpi globally
 plt.rcParams['savefig.dpi'] = 500
@@ -19,12 +20,14 @@ def main():
     Responsible for running everything sequentially, main has also the option to jump over some calculation and get
     some csv data, by setting values to false or true
     """
-    read_original_data = False  # set up if data csv are availabel, which been calculated before or the calculation
+
+    # set up if data csv are availabel, which been calculated before or the calculation
+    read_original_data = False
     # runs with the basis data
     reduction_through_pv_sale = True  # set up if the calculation runs with co2_reduction_through_pv_sale or not
     only_plot = False # true - readin allready calculated and save datas from pre. runs and plot thoose data,
     # false - runs through all funktions
-    plot_without_bars = True # switsh off bar in all plots
+    plot_without_bars = True # switch off bar in all plots
     simulate_new_sizes = True # if there are new setups at the sizes of batteries
     print(f'{simulate_new_sizes=}')
     speichergroessen = [12_000]
@@ -222,8 +225,8 @@ def readall_netz():
 def read_pv_netz_combined():
     """
     Ruft die pv und netz Funktionen auf und schreibt die in ein df.
-         :return: Dataframe
-         """
+    :return: Dataframe
+    """
     pv_df = readall_pv()
     netz_df = readall_netz()
     # df = pd.concat([pv_df, netz_df], axis=1) # Todo
@@ -368,7 +371,6 @@ def cal_battery_own_consumption(netz_pv, speichergroesse, soc_start=None):
 
 
 def plot_power_one_day():
-
     return
 
 
