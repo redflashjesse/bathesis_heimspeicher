@@ -10,7 +10,6 @@ from matplotlib.ticker import AutoLocator
 from matplotlib.lines import Line2D
 import matplotlib.lines as mlines
 import pickle
-
 # set dpi globally
 plt.rcParams['savefig.dpi'] = 500
 
