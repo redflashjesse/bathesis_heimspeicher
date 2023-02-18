@@ -1,6 +1,5 @@
 # Imports
 import math
-import random
 from datetime import timedelta
 import matplotlib.pyplot as plt
 import numpy as np
@@ -61,7 +60,7 @@ def selection_days():
     numbers_of_month = list(1,
                             12)
     for numbers_of_month in enumerate(days_of_month):
-        day = random.randrange(1,30)
+        day = rd.randrange(1,30)
         filename_pv = "data/PV-Anlage/Smartmeter_für_2021/"
         filename_netz = "data/Netzanschluss/Smartdaten_für_2021/"
 
