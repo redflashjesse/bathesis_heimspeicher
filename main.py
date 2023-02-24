@@ -7,6 +7,9 @@ import random as rd
 import glob
 import pickle
 import math
+from matplotlib import colors
+from matplotlib.ticker import PercentFormatter
+from matplotlib import style
 
 # set dpi globally
 plt.rcParams['savefig.dpi'] = 500
@@ -21,6 +24,7 @@ def main():
     """
     orginal_read = False
     use_data_for_plot = False # or pickle
+    plot_by_days = False
     speichergroessen = [12_000]
                             # list(range(500,  # start
                             #      10_000 + 1,  # end
@@ -31,7 +35,8 @@ def main():
        #                               20)) # step # in days for the year
     startday = 150
     endday = startday + 1
-    min_one_day = 1440
+    daysteps = 15
+
 
     if orginal_read:
         print(f"--- Read in Smartmeter Daten ---")
@@ -44,41 +49,48 @@ def main():
         base_data = pd.read_pickle(f'documents/base_data.pkl')
 
     print(len(base_data))
-
-    if use_data_for_plot:
-        for size in speichergroessen:
-            print(f"--- Simulation Batterie nach Eigenverbrauch mit {size} Wh---")
-            batterypower_df = cal_battery_own_consumption(netz_pv=base_data,
-                                          soc_start=soc_start,
-                                         speichergroesse=size)
-
-            print(f'--- Save Netz PV Speicher Eigenverbrauch als pickle ---')
-            batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_eigenverbrauch.pkl')
-
-            print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
-            batterypower_df = cal_battery_girdfriendly(netz_pv=batterypower_df,
-                                                          soc_start=soc_start,
-                                                          speichergroesse=size)
-
-            print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
-            batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+    if plot_by_days:
+        plot_for_selected_days(daystep=daysteps, speichergroessen=speichergroessen,
+                               base_data=base_data, soc_start=soc_start,
+                               use_data_for_plot=use_data_for_plot
+                               )
     else:
-        print(f'--- use pickle for data ---')
-        batterypower_df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+        if use_data_for_plot:
+            for size in speichergroessen:
+                print(f"--- Simulation Batterie nach Eigenverbrauch mit {size} Wh---")
+                batterypower_df = cal_battery_own_consumption(netz_pv=base_data,
+                                              soc_start=soc_start,
+                                             speichergroesse=size)
 
-        print(f'--- Plot: Leistungsverlauf ---')
-        print(batterypower_df.keys())
-        #for day in selection_days_start:
-         #   startday = day
-        for size in speichergroessen:
-            plot_power(df = batterypower_df, startday=startday, endday=endday, size=size, min_one_day = min_one_day)
-            plot_power_freq_dist(df=batterypower_df, startday=startday, endday=endday, size=size)
+                print(f'--- Save Netz PV Speicher Eigenverbrauch als pickle ---')
+                batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_eigenverbrauch.pkl')
+
+                print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
+                batterypower_df = cal_battery_girdfriendly(netz_pv=batterypower_df,
+                                                              soc_start=soc_start,
+                                                              speichergroesse=size)
+
+                print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
+                batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+        else:
+            print(f'--- use pickle for data ---')
+            batterypower_df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+
+            print(f'--- Plot: Leistungsverlauf ---')
+            print(batterypower_df.keys())
+            #for day in selection_days_start:
+             #   startday = day
+            for size in speichergroessen:
+                plot_power(df = batterypower_df, startday=startday, endday=endday,
+                           size=size)
+                plot_power_freq_dist(df=batterypower_df, startday=startday, endday=endday,
+                                     size=size)
 
 
 
 
 
-def selection_days():
+def plot_for_selected_days(daystep, speichergroessen, base_data, soc_start, use_data_for_plot):
     """
         Auswahl bestimmter Tag aus dem Jahresdatensatz, Auswahl erste Möglichkeit einzelne Tage auszuwählen
         zum Beisspiel zwei Tage im Monat, Daten für die NetzLeistung und PVleistung werden in
@@ -87,16 +99,42 @@ def selection_days():
          :param: Name of the file that serves as input. Format : .csv
          :return: list of filename
         """
-    list_of_days = []
-    list_of_days = list(range(1, 365, 15))
+    list_of_days = list(range(1, 365, daystep))
     for day in list_of_days:
-        day
-    numbers_of_month = list(1,
-                            12)
 
+        startday = day
+        endday = startday + 1
 
+        if use_data_for_plot:
+            for size in speichergroessen:
+                print(f"--- Simulation Batterie nach Eigenverbrauch mit {size} Wh---")
+                batterypower_df = cal_battery_own_consumption(netz_pv=base_data,
+                                                              soc_start=soc_start,
+                                                              speichergroesse=size)
 
+                print(f'--- Save Netz PV Speicher Eigenverbrauch als pickle ---')
+                batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_eigenverbrauch.pkl')
 
+                print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
+                batterypower_df = cal_battery_girdfriendly(netz_pv=batterypower_df,
+                                                           soc_start=soc_start,
+                                                           speichergroesse=size)
+
+                print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
+                batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+        else:
+            print(f'--- use pickle for data ---')
+            batterypower_df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+
+            print(f'--- Plot: Leistungsverlauf ---')
+            print(batterypower_df.keys())
+            # for day in selection_days_start:
+            #   startday = day
+            for size in speichergroessen:
+                plot_power(df=batterypower_df, startday=startday, endday=endday,
+                           size=size)
+                plot_power_freq_dist(df=batterypower_df, startday=startday, endday=endday,
+                                     size=size)
 def read_modbus_pv(filename):
     """
     Daten aus dem Ordner PV-Anlage an df übergeben und den Timestamp als Index setzen.
@@ -429,6 +467,7 @@ def cal_battery_girdfriendly(netz_pv, speichergroesse, soc_start=None):
     netzbezug = []  # result amuont of power form the grid
     netzeinspeisung = []  # result amuont of power to the grid
     netzleistung = []  # grid power
+    ladezeit = [] # time charging the battery
 
     max_einspeise_p = 0.6 # entspricht dem prozentualen Anteil
     p_netz_out_max = max(netz_pv['GridPowerOut']) * max_einspeise_p # value of max power input to the grid
@@ -471,13 +510,16 @@ def cal_battery_girdfriendly(netz_pv, speichergroesse, soc_start=None):
                     p_ist = -p_ist  # invert value to reflect incoming p
                     soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
                     soc_akt = soc_ist - soc_delta
+                    ladeleistung = p_ist
 
                 # Capacity check, prevent overcharge
                 if soc_akt > soc_max:
                     soc_akt = soc_ist
                     p_ist = 0
                     soc_delta = 0
+                    ladeleistung = 0
             else:
+                ladeleistung = 0
                 if p_supply < max_einspeise_p*0.1:
                     p_ist = min(p_max_in, p_supply)
 
@@ -514,22 +556,23 @@ def cal_battery_girdfriendly(netz_pv, speichergroesse, soc_start=None):
         netzbezug.append(p_netzbezug)
         netzeinspeisung.append(p_netzeinspeisung)
         netzleistung.append(p_netz)
+        # ladezeit.append(ladeleistung)
 
     netz_pv[f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_delta
     netz_pv[f'current_soc_{speichergroesse}Wh_netzdienlich'] = soc
     netz_pv[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = soc_deltas
     netz_pv[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = netzbezug
     netz_pv[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = netzeinspeisung
+    #netz_pv[f'p_ladeleistung_{speichergroesse}Wh_netzdienlich'] = ladezeit
 
     return netz_pv  # Leistungen_Speicher_eigenverbrauch
 
 # starts of plots
 
-def plot_power(df, startday, endday, size, min_one_day):
+def plot_power(df, startday, endday, size):
     assert startday < endday
-    date = df.index[startday*1440+ 125]
+    date = df.index[startday*1440+ 200]
     date = date.strftime('%Y-%m-%d')
-    print(date) #TODO
     fig, ax = plt.subplots()
 
     # Leistungsverlauf ohne Quartierspeicher
@@ -543,32 +586,41 @@ def plot_power(df, startday, endday, size, min_one_day):
     netzbezug_eigen = df[f'p_netzbezug_{size}Wh_eigenverbrauch'][startday * 1440:endday * 1440]
     einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_eigenverbrauch'][startday * 1440:endday * 1440]
     einspeisung_eigen = einspeisung_eigen.mul(-1)
-    plt.plot(netzbezug_eigen, label='Netzbezug mit Speicher Eigenverbrauch',  alpha=0.4, zorder=2)
-    plt.plot(einspeisung_eigen, label='Netzbezug mit Speicher Eigenverbrauch',  alpha=0.4, zorder=2)
+    plt.plot(netzbezug_eigen, label='Speicher Eigenverbrauch',  alpha=0.4, zorder=2)
+    plt.plot(einspeisung_eigen, label='Speicher Eigenverbrauch',  alpha=0.4, zorder=2)
 
     # Leistungsverlauf mit Quatierspeicher nach netzdienlich
     netzbezug_eigen = df[f'p_netzbezug_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
     einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
     einspeisung_eigen = einspeisung_eigen.mul(-1)
-    plt.plot(netzbezug_eigen, label='Netzbezug mit Speicher netzdienlich',  alpha=0.4, zorder=3)
-    plt.plot(einspeisung_eigen, label='Netzbezug mit Speicher netzdienlich',  alpha=0.4, zorder=3)
-    plt.legend(loc='best')
+    # Ladeleistung = df[f'p_ladeleistung_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
+
+    plt.plot(netzbezug_eigen, label='Speicher netzdienlich',  alpha=0.4, zorder=3)
+    plt.plot(einspeisung_eigen, label='Speicher netzdienlich',  alpha=0.4, zorder=3)
+    # plt.fill_between(Ladeleistung, y2= 0, label='Ladeleistung des Speichers', alpha=0.4, zorder=3)
+
+    plt.legend(bbox_to_anchor=(1,0), loc="lower left")
     ax.xaxis.set_ticks_position('bottom')  # the rest is the same
     # plt.ylim(1000, )
     ax.grid(True)
     plt.xticks(rotation='vertical') #range(len(labels)), labels,
     #plt.gcf().set_size_inches(15, 5)
-    plt.title('Leistungsverlauf')
-    # plt.suptitle('')
+    plt.title(f'Leistungsverlauf')
+    plt.suptitle(f'für {date}')
     plt.xlabel('Zeit in h')
     plt.ylabel('Leistung in Wh')
     plt.tight_layout()
-    plt.show()
-    fig.savefig(f'graphs/Leistungsverlauf.png')
+    # plt.show()
+    fig.savefig(f'graphs/Leistungsverlauf_{date}.png')
 
 def plot_power_freq_dist(df, startday, endday, size, binsize = 100):
     assert startday < endday
     bins= 25
+    date = df.index[startday*1440+ 200]
+    date = date.strftime('%Y-%m-%d')
+    density=False
+    plt.style.use('fivethirtyeight')
+    fig, ax = plt.subplots()
     # Betrachtung der Leistungen am Netzpunkt ohne Quartierspeicher
     netzbezug_pure = df[f'GridPowerIn'][startday * 1440:endday * 1440]
     einspeisung_pure = df[f'GridPowerOut'][startday * 1440:endday * 1440]
@@ -597,32 +649,40 @@ def plot_power_freq_dist(df, startday, endday, size, binsize = 100):
     Leistung_netz= einspeisung_netz.mul(-1) + netzbezug_netz
 
     print(min_out, max_in)
-    #print(einspeisung)
-    plt.style.use('fivethirtyeight')
     print(type(round(min_out)), round(min_out))
     bins_einspeisung = list(range(int(round(min_out)), 0, int(round(min_out)/10)))
     bins_netzbezug = list(range(int(round(max_in)), 0, int(round(min_out)/10)))
     #plt.hist(netzbezug, bins=bins_in, density= True, edgecolor='black')
     plt.hist([Leistung_pure], bins=bins, # [bins_out, bins_in],
              color=['blue' #, 'orange'
-                    ], density= True, edgecolor='black',
+                    ], density= density, edgecolor='black', label='ohne Speicher',
              alpha=0.6, zorder=1) #, log=True, linewidth=1)
     plt.hist([Leistung_eigenverbrauch], bins=bins, # [bins_out, bins_in],
              color=['red'#, 'orange'
-                    ], density= True, edgecolor='black',
-             alpha=0.4, zorder=2) #, log=True, linewidth=1)
+                    ], density= density, edgecolor='black', label='Speicher eigenverbrauch',
+             alpha=0.2, zorder=2) #, log=True, linewidth=1)
     plt.hist([Leistung_netz], bins=bins, # [bins_out, bins_in],
              color=['yellow'#, 'orange'
-                     ], density= True, edgecolor='black',
+                     ], density= density, edgecolor='black', label='Speicher netzdienlich',
              alpha=0.5, zorder=3) #, log=True, linewidth=1)
     plt.axvline(0, color='red')
-    plt.legend()
-    plt.title('Histogramm')
+    plt.legend(loc= 'upper left')
+    # We can also normalize our inputs by the total number of counts
+    # axs[1].hist(dist1, bins=n_bins, density=True)
+    # Now we format the y-axis to display percentage
+    # axs[1].yaxis.set_major_formatter(PercentFormatter(xmax=1))
+    plt.title(f'Verteilung von Leistungen am {date}')
     plt.xlabel('Leistung in Wh')
     plt.ylabel('Häufigkeit')
     plt.tight_layout()
-    plt.show()
-
+    #plt.show()
+    fig.savefig(f'graphs/Histogramm_{date}.png')
+    # plt.savefig(f'graphs/Histogramm_{date}.png'
+                # , dpi='figure', format=None, metadata=None,
+                # bbox_inches=None, pad_inches=0.1,
+                # facecolor='auto', edgecolor='auto',
+                # backend=None
+                # )
 
 # Makes the method main
 __name__
