@@ -68,14 +68,14 @@ def main():
 
 				print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
 
-				cal_battery_gridfriendly(df=batterypower_df,
-				                         soc_start=soc_start,
-				                         speichergroesse=size,
-				                         p_max_in=p_max_in,
-				                         p_max_out=p_max_out,
-				                         p_min_in=p_min_in,
-				                         p_min_out=p_min_out
-				                         )
+				cal_gridfriendly(df=batterypower_df,
+				                 soc_start=soc_start,
+				                 speichergroesse=size,
+				                 p_max_in=p_max_in,
+				                 p_max_out=p_max_out,
+				                 p_min_in=p_min_in,
+				                 p_min_out=p_min_out
+				                 )
 
 				print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
 				batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
@@ -505,16 +505,20 @@ def cal_battery_gridfriendly(df, speichergroesse,
 	return df
 
 
-
-def cal_gridfrindly(df, speichergroesse,
-                    p_max_in, p_max_out, p_min_in, p_min_out, # battery parameter by the size
-                    soc_start=None):
-
-	list_of_days = list(range(1, 365, 1))
+def cal_gridfriendly(df, speichergroesse,
+                     p_max_in, p_max_out, p_min_in, p_min_out,  # battery parameter by the size
+                     soc_start=None
+                     ):
+	list_of_days = list(range(0, 365, 1))
 	for day in list_of_days:
 		startday = day
 		endday = startday + 1
-		check_for_while_at_day = False
+		batt_reached_peak = False
+		start_idx = startday * 1440
+		end_idx = endday * 1440
+		print(f'{start_idx=}')
+		print(f'{end_idx=}')
+		assert start_idx < end_idx
 
 		soc = []  # minute-wise soc
 		p_delta = []  # the difference in power per minute
@@ -528,15 +532,11 @@ def cal_gridfrindly(df, speichergroesse,
 		else:
 			soc_akt = soc_max / 2  # assumption: 45% charged at startup
 
-		df_netzbezug = df[f'GridPowerIn'][startday * 1440:endday * 1440]
-		df_einspeisung = df[f'GridPowerOut'][startday * 1440:endday * 1440]
-		df_day = df[startday * 1440:endday * 1440]
+		df_day = df.iloc[start_idx:end_idx]
+		print(len(df_day))
 
 		# for each day start here
-		for index, row in df_day:
-			first_index_of_day = df[f'Index'][0]
-			current_index= df[f'Index']
-
+		for index, row in df_day.iterrows():
 			soc_ist = soc_akt
 			soc_delta = 0
 			p_ist = 0
@@ -569,22 +569,15 @@ def cal_gridfrindly(df, speichergroesse,
 
 				# Capacity check, prevent overcharge
 				if soc_akt > soc_max:
-					# call if it the first time then go to while, otherwise go ahead the while:
+					# call if it is the first time then go to while, otherwise go ahead the while:
 					# where this happens: switch for this day, back to the first infeed minute be the index
 					# until soc > soc_max
-					if check_for_while_at_day:
+					if batt_reached_peak:
 						soc_akt = soc_ist
 						p_ist = 0
 						soc_delta = 0
-					else:
-						# TODO Idee die Schleife in eigene Funktion zu überführen
-						index_start = min(df_einspeisung.index)
-						index_end = max(df_einspeisung.index)
-						new_charging_data = charge_gridfriendly(df_day=df_day[index_start - 1:index_end],
-																speichergroesse=speichergroesse,
-																p_max_in=p_max_in, p_max_out=p_max_out,
-																p_min_in=p_min_in, p_min_out=p_min_out)
-						check_for_while_at_day = True
+					else:  # shuffle output for netzfreundlichkeit
+						batt_reached_peak = True
 
 			# calculation of the grid power by intergration of a battery
 			# TODO Bedinnungen anpassen dies gilt nur wenn der für den Bereich außerhalb der While Betrachtung
@@ -597,13 +590,68 @@ def cal_gridfrindly(df, speichergroesse,
 				p_netzbezug = row['GridPowerIn']
 				p_netzeinspeisung = row['GridPowerOut']
 
+			#TODO
+			# abspeichern der daten aus dem normalen durchlauf
+		#df = charge_gridfriendly(df= df_day)
 
 	return df
-def charge_gridfriendly(df_day, speichergroesse,
-						p_max_in, p_max_out,
-						p_min_in, p_min_out):
 
-	return df_day
+
+def charge_gridfriendly(df, speichergroesse,
+                        p_max_in, p_max_out,
+                        p_min_in, p_min_out
+                        ):
+	print("Executing charge_gridfriendly")
+
+	# TODO Idee die Schleife in eigene Funktion zu überführen
+	grid_feed_start = df[df[f'GridPowerOut'] > 0].index[0]
+
+	minute_before_feed = grid_feed_start - timedelta(minutes=1)
+
+	grid_feed_end = df[df[f'GridPowerOut'] > 0].index[-1]
+
+	print(df[f'GridPowerOut'][grid_feed_end])
+
+
+	# Todo Ausrechnen der möglichen Ausspeise minuten bei tages licht
+	max_soc_reached = df[f'current_soc_{speichergroesse}Wh_netzdienlich'].loc[grid_feed_start]
+
+	print(f'{max_soc_reached=}')
+	# start bis ende bei allen bezugsleistungen einen negativien soc delta schreiben
+	# dann mit der while schleife den max einspeise wertfinden und zelle soc delta ändern
+	while max_soc_reached <= soc_max:  # End Condition
+
+		print(f'{max_soc_reached=}')
+		netzeinspeisung_max = max(df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'])
+		index = df[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'].idxmax()
+		print(f'{netzeinspeisung_max=}')
+		print(f'{index=}')
+		surplus = netzeinspeisung_max - p_max_in
+		# where is the max?
+
+
+		# nach jeder schleife jede row durchlaufen und checken wie sich soc beentwickelt
+		# bei soc < 0.9 weiter max einspeisung suchen
+		# bei soc > 0.9 am tag die daten bis zum Index wo soc>0.9 erreicht worden ist fest schreiben
+		# und zurückgeben an den normalen verlauf
+		df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'][index] = surplus
+
+		df[f'p_delta_{speichergroesse}Wh_netzdienlich'][index] = p_max_in
+		# calc addition to battery
+		soc_delta = ((p_max_in * eta) / (speichergroesse / 100)) / 100
+
+		df[f'soc_delta_{speichergroesse}Wh_netzdienlich'][index] = soc_delta
+
+		df[f'current_soc_{speichergroesse}Wh_netzdienlich'][index] += soc_delta
+		# adapt new soc
+		max_soc_reached = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][index]
+
+		# print(f'Changed a Minute @ {index}')
+		# print(df.loc[[index]].transpose())
+		df_pool = df_pool.drop(labels=index)
+
+	return df
+
 
 # starts of plots
 def plot_power(df, startday, endday, size):
