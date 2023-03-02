@@ -514,7 +514,7 @@ def cal_gridfriendly(df, speichergroesse,
                      p_max_in, p_max_out, p_min_in, p_min_out,  # battery parameter by the size
                      soc_start=None
                      ):
-	# muss hier noch eine leere Liste für df erstellt werden
+	# TODO muss hier noch eine leere Liste für df erstellt werden
 
 	list_of_days = list(range(0, 365, 1))
 	for day in list_of_days:
@@ -539,7 +539,7 @@ def cal_gridfriendly(df, speichergroesse,
 		else:
 			soc_akt = soc_max / 2  # assumption: 45% charged at startup
 
-		df_day = df.iloc[start_idx:end_idx]
+		df_day = df.iloc[start_idx:end_idx].copy(deep=True)
 		print(len(df_day))
 
 		# for each day start here
@@ -597,7 +597,7 @@ def cal_gridfriendly(df, speichergroesse,
 				p_netzbezug = row['GridPowerIn']
 				p_netzeinspeisung = row['GridPowerOut']
 
-			#TODO
+			# TODO
 			# abspeichern der daten aus dem normalen durchlauf
 			p_netz = p_netzbezug - p_netzeinspeisung
 
@@ -616,35 +616,36 @@ def cal_gridfriendly(df, speichergroesse,
 		df_day[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = netzbezug
 		df_day[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = netzeinspeisung
 
+		# calculation done
+		# check if optimization is needed
 		if batt_reached_peak:
-			df_gridfriendly = charge_gridfriendly(df= df_day)
+			df_gridfriendly = charge_gridfriendly(df=df_day,
+			                                      speichergroesse=speichergroesse,
+			                                      p_max_in=p_max_in,
+			                                      p_max_out=p_max_out,
+			                                      p_min_in=p_min_in,
+			                                      p_min_out=p_min_out,
+			                                      soc_max=soc_max,
+			                                      soc_min=soc_min
+			                                      )
 			df_day = df_gridfriendly
 
-		df.append(df_day) # todo wie kann mann sicher gehen das der soc wert von einem tag zum anderen übernommen wird
-		# Todo df append als liste aufführen und im gesamten df zusammenfügen
+		df.append(df_day)  # todo wie kann mann sicher gehen das der soc wert von einem tag zum anderen übernommen wird
+	# Todo df append als liste aufführen und im gesamten df zusammenfügen
 
 	return df
 
 
-def charge_gridfriendly(df, speichergroesse,
-                        p_max_in, p_max_out,
-                        p_min_in, p_min_out,
-                        soc_max, soc_min): # Todo soc grenzen einfügen
+def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out, soc_max, soc_min):
 	print("Executing charge_gridfriendly")
 
-	# TODO Idee die Schleife in eigene Funktion zu überführen
-	grid_feed_start = df[df[f'GridPowerOut'] > 0].index[0] #Todo warum .index[0]
-	print(f'{grid_feed_start=}')
-
+	grid_feed_start = df[df[f'GridPowerOut'] > 0].index[0]  # .index[0] choose the first value
 	minute_before_feed = grid_feed_start - timedelta(minutes=1)
-	print(f'{minute_before_feed=}')
 
 	grid_feed_end = df[df[f'GridPowerOut'] > 0].index[-1]
-	print(df[f'GridPowerOut'][grid_feed_end])
 
-	df_temporary = df[:minute_before_feed]
 	df_daylight = df[grid_feed_start:grid_feed_end]
-	df_daylight_values = df[grid_feed_start:grid_feed_end]
+	df_daylight_values = df_daylight
 
 	soc = []  # minute-wise soc
 	p_delta = []  # the difference in power per minute
@@ -652,13 +653,14 @@ def charge_gridfriendly(df, speichergroesse,
 	netzbezug = []  # result amuont of power form the grid
 	netzeinspeisung = []  # result amuont of power to the grid
 	netzleistung = []  # grid power
-	soc_deltas_negativ = [] # only for values if power need over daylight
+	soc_deltas_negativ = []  # only for values if power need over daylight
 
 	# erster soc Wert für die berechnung
 	soc_akt = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed]
-	for index, row in df_daylight.iterrows():
-		p_use_power = df_daylight[f'GridPowerIn']
-		if p_use_power>0:
+
+	for index, row in df_daylight.iterrows(): #
+		p_use_power = row[f'GridPowerIn']
+		if p_use_power > 0:
 			# p_supply = p_soll * (1 + (1 - eta))  # factor in losses
 			p_ist = min(p_max_out, p_use_power)  # Threshold for upper bound
 
@@ -666,8 +668,10 @@ def charge_gridfriendly(df, speichergroesse,
 				soc_delta = -((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
 		else:
 			soc_delta = 0
+
 		soc_deltas_negativ.append(soc_delta)
-	df_daylight[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = soc_deltas_negativ
+
+	df_daylight[f'soc_deltas_negativ_{speichergroesse}Wh_netzdienlich'] = soc_deltas_negativ
 
 	# Todo Ausrechnen der möglichen Ausspeise minuten bei tages licht
 	max_soc_reached = df[f'current_soc_{speichergroesse}Wh_netzdienlich'].loc[grid_feed_start]
@@ -679,7 +683,7 @@ def charge_gridfriendly(df, speichergroesse,
 	while max_soc_reached <= soc_max:  # End Condition
 		print(f'{soc_akt=}')
 		netzeinspeisung_max = max(df_daylight[f'GridPowerOut'])
-		index = df_daylight[f'Unix-Timestamp'].idxmax()
+		index = df_daylight[f'GridPowerOut'].idxmax()
 		print(f'{netzeinspeisung_max=}')
 		print(f'{index=}')
 		surplus = netzeinspeisung_max - p_max_in
@@ -706,7 +710,7 @@ def charge_gridfriendly(df, speichergroesse,
 		# df durch rechnen df[grid_feed_end:grid_feed_end]
 
 		# look for current soc by begin of daylight
-		soc_ist = float(row[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed])
+		soc_ist = float(df[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed])
 		battery_charging_limit_max = False
 		df_temp = pd.DataFrame()
 
@@ -782,22 +786,14 @@ def charge_gridfriendly(df, speichergroesse,
 		df_temp[f'p_netzbezug_{speichergroesse}Wh_netzdienlich_temp'] = netzbezug
 		df_temp[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich_temp'] = netzeinspeisung
 
-# todo hier die einzeln teile mergen
+	# todo hier die einzeln teile mergen
 	if battery_charging_limit_max:
-
-
-
-
-
-
-		max_soc_reached = max(df_temporary[f'current_soc_{speichergroesse}_Wh_netzdienlich'])# df[f'current_soc_{speichergroesse}Wh_netzdienlich'][index]
+		max_soc_reached = max(df_temporary[f'current_soc_{speichergroesse}_Wh_netzdienlich']
+		                      )  # df[f'current_soc_{speichergroesse}Wh_netzdienlich'][index]
 
 		# print(f'Changed a Minute @ {index}')
 		# print(df.loc[[index]].transpose())
 		df_daylight = df_daylight.drop(labels=index)
-
-
-
 
 	return df
 
