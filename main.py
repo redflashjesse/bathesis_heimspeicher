@@ -492,47 +492,44 @@ def cal_battery_gridfriendly(df, speichergroesse,
 	df_pool = df
 
 	while (max_soc_reached <= soc_max + 0.01):  # End Condition TODO: Cheat rausnehmen
-
 		netzeinspeisung_max = max(df_pool[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'])
 		surplus = netzeinspeisung_max - p_max_in
 		# where is the max?
 		index = df_pool[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'].idxmax()
-
 		df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'][index] = surplus
-
 		df[f'p_delta_{speichergroesse}Wh_netzdienlich'][index] = p_max_in
 		# calc addition to battery
 		soc_delta = ((p_max_in * eta) / (speichergroesse / 100)) / 100
-
 		df[f'soc_delta_{speichergroesse}Wh_netzdienlich'][index] = soc_delta
-
 		df[f'current_soc_{speichergroesse}Wh_netzdienlich'][index] += soc_delta
 		# adapt new soc
 		max_soc_reached = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][index]
-
-		# print(f'Changed a Minute @ {index}')
-		# print(df.loc[[index]].transpose())
 		df_pool = df_pool.drop(labels=index)
-
 	return df
 
 
-def cal_gridfriendly(df, speichergroesse,
-                     p_max_in, p_max_out, p_min_in, p_min_out,  # battery parameter by the size
-                     soc_start=None
-                     ):
-	# TODO muss hier noch eine leere Liste für df erstellt werden
+def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out, soc_start=None):
+	"""
+# battery parameter by the size
+	:param df:
+	:param speichergroesse:
+	:param p_max_in:
+	:param p_max_out:
+	:param p_min_in:
+	:param p_min_out:
+	:param soc_start:
+	:return:
+	"""
 
-	list_of_days = list(range(0, 365, 1))
-	for day in list_of_days:
+	for day in list(range(0, 365, 1)):
 		startday = day
 		endday = startday + 1
-		batt_reached_peak = False
 		start_idx = startday * 1440
 		end_idx = endday * 1440
-		print(f'{start_idx=}')
-		print(f'{end_idx=}')
+
 		assert start_idx < end_idx
+
+		batt_reached_peak = False
 
 		soc = []  # minute-wise soc
 		p_delta = []  # the difference in power per minute
@@ -541,13 +538,14 @@ def cal_gridfriendly(df, speichergroesse,
 		netzeinspeisung = []  # result amuont of power to the grid
 		netzleistung = []  # grid power
 
-		if soc_start:
+		if soc_start and day == 0:
 			soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
-		else:
+		elif day == 0:
 			soc_akt = soc_max / 2  # assumption: 45% charged at startup
+		else:
+			soc_akt = df[f'current_soc_{speichergroesse}Wh_netzdienlich'].iloc[start_idx - 1]
 
 		df_day = df.iloc[start_idx:end_idx].copy(deep=True)
-		print(len(df_day))
 
 		# for each day start here
 		for index, row in df_day.iterrows():
@@ -564,7 +562,8 @@ def cal_gridfriendly(df, speichergroesse,
 
 				if p_ist >= p_min_out:  # Threshold for lower bound
 					soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
-					soc_akt = soc_ist - soc_delta
+					soc_delta = -soc_delta
+					soc_akt = soc_ist + soc_delta
 
 				# Capacity check, prevent depletion
 				if soc_akt < soc_min:
@@ -583,18 +582,10 @@ def cal_gridfriendly(df, speichergroesse,
 
 				# Capacity check, prevent overcharge
 				if soc_akt > soc_max:
-					# call if it is the first time then go to while, otherwise go ahead the while:
-					# where this happens: switch for this day, back to the first infeed minute be the index
-					# until soc > soc_max
-					if batt_reached_peak:
-						soc_akt = soc_ist
-						p_ist = 0
-						soc_delta = 0
-					else:  # shuffle output for netzfreundlichkeit
-						batt_reached_peak = True
-
-			# calculation of the grid power by intergration of a battery
-			# TODO Bedinnungen anpassen dies gilt nur wenn der für den Bereich außerhalb der While Betrachtung
+					batt_reached_peak = True
+					soc_akt = soc_ist
+					p_ist = 0
+					soc_delta = 0
 
 			if p_ist > 0:
 				p_netzbezug = row['GridPowerIn'] - max(p_ist, 0)
@@ -625,33 +616,67 @@ def cal_gridfriendly(df, speichergroesse,
 		# calculation done
 		# check if optimization is needed
 		if batt_reached_peak:
-			df_gridfriendly = charge_gridfriendly(df=df_day,
-			                                      speichergroesse=speichergroesse,
-			                                      p_max_in=p_max_in,
-			                                      p_max_out=p_max_out,
-			                                      p_min_in=p_min_in,
-			                                      p_min_out=p_min_out,
-			                                      soc_max=soc_max,
-			                                      soc_min=soc_min
-			                                      )
-			df_day = df_gridfriendly
+			df_day = charge_gridfriendly(df=df_day,
+			                             speichergroesse=speichergroesse,
+			                             p_max_in=p_max_in,
+			                             p_max_out=p_max_out,
+			                             p_min_in=p_min_in,
+			                             p_min_out=p_min_out
+			                             )
 
-		df.append(df_day)  # todo wie kann mann sicher gehen das der soc wert von einem tag zum anderen übernommen wird
-	# Todo df append als liste aufführen und im gesamten df zusammenfügen
-
+		df.append(df_day)  # TODO correct merging
 	return df
 
 
-def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out, soc_max, soc_min):
+def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out):
 	print("--- Executing charge_gridfriendly ---")
 
 	grid_feed_start = df[df[f'GridPowerOut'] > 0].index[0]  # .index[0] choose the first value
 	minute_before_feed = grid_feed_start - timedelta(minutes=1)
 
 	grid_feed_end = df[df[f'GridPowerOut'] > 0].index[-1]
+	df_daylight_pool = df[grid_feed_start:grid_feed_end].copy(deep=True)
 
-	df_daylight = df[grid_feed_start:grid_feed_end].copy(deep=True)
-	df_daylight_pool = df_daylight
+	# erster soc Wert für die berechnung
+	soc_akt = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed]
+
+	# cal of how many min are need estimated for charging for rise the soc from sunset
+	size_in_kwh = speichergroesse / 100
+	soc_delta_max = ((p_max_in * eta) / size_in_kwh) / 100
+	initial_soc = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed]
+	times_charge = round((soc_max - initial_soc) / soc_delta_max)
+
+	optimized_soc_list = []
+	optimized_indices = []
+	for x in range(times_charge):
+		netzeinspeisung_max = max(df_daylight_pool[f'GridPowerOut'])
+		index = df_daylight_pool[f'GridPowerOut'].idxmax()
+
+		# check max
+		charging_performance = min(p_max_in, netzeinspeisung_max)
+		# check min
+		if charging_performance < p_min_in:
+			charging_performance = 0
+		# just take old values that are in df, no optimization possible
+
+		if charging_performance > 0:  # optimization possible
+			surplus = netzeinspeisung_max - charging_performance
+			df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'][index] = surplus
+
+			df[f'p_delta_{speichergroesse}Wh_netzdienlich'][index] = charging_performance
+			# calc addition to battery
+			soc_delta = ((charging_performance * eta) / (speichergroesse / 100)) / 100
+
+			df[f'soc_delta_{speichergroesse}Wh_netzdienlich'][index] = soc_delta
+			optimized_soc_list.append(soc_delta)
+			optimized_indices.append(index)
+
+		df_daylight_pool = df_daylight_pool.drop(labels=index)
+
+
+	# look for the minute start feed soc
+	max_soc_reached = df[f'current_soc_{speichergroesse}Wh_netzdienlich'].loc[grid_feed_start]
+	assert max_soc_reached < soc_max
 
 	soc = []  # minute-wise soc
 	p_delta = []  # the difference in power per minute
@@ -659,147 +684,51 @@ def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_mi
 	netzbezug = []  # result amuont of power form the grid
 	netzeinspeisung = []  # result amuont of power to the grid
 	netzleistung = []  # grid power
-	soc_deltas_negativ = []  # only for values if power need over daylight
 
-	# erster soc Wert für die berechnung
-	soc_akt = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed]
+	# valus at feed start
+	soc_ist = [f'current_soc_{speichergroesse}Wh_netzdienlich'][grid_feed_start]
 
-	for index, row in df_daylight.iterrows():  #
-		p_use_power = row[f'GridPowerIn']
-		if p_use_power > 0:
-			# p_supply = p_soll * (1 + (1 - eta))  # factor in losses
-			p_ist = min(p_max_out, p_use_power)  # Threshold for upper bound
+	for index, row in df.iterrows():
 
-			if p_ist >= p_min_out:  # Threshold for lower bound
-				soc_delta = -((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
-			else:
-				p_ist = 0
-				soc_akt = 0
+		row_optimized = True if index in optimized_indices else False
 
-		soc_deltas_negativ.append(soc_delta)
+		if not row_optimized:
 
-	df_daylight[f'soc_deltas_negativ_{speichergroesse}Wh_netzdienlich'] = soc_deltas_negativ
-
-
-	# cal of how many min are need estimated for charging for rise the soc from sunset
-	size_in_kwh = speichergroesse / 100
-	soc_delta_max = ((p_max_in * eta) / size_in_kwh) / 100
-	print(f'{soc_delta_max=}')
-
-	initial_soc = df[f'current_soc_{speichergroesse}Wh_netzdienlich'][minute_before_feed]
-	times_charge = round((soc_max - initial_soc) / soc_delta_max)
-
-	optimized_soc_list = []
-	optimized_indices = []
-	for x in range(times_charge):
-		# print(f'{soc_akt=}')
-		netzeinspeisung_max = max(df_daylight_pool[f'GridPowerOut'])
-		index = df_daylight_pool[f'GridPowerOut'].idxmax()
-
-		# check max
-		charging_performance = min(p_max_in, netzeinspeisung_max)
-		# check min
-		if charging_performance < p_min_in:
-			charging_performance = 0
-			# just take old values that are in df, no optimization possible
-
-		if charging_performance > 0:  # optimization possible
-			surplus = netzeinspeisung_max - charging_performance
-			df_daylight[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'][index] = surplus
-
-			df_daylight[f'p_delta_{speichergroesse}Wh_netzdienlich'][index] = charging_performance
-			# calc addition to battery
-			soc_delta = ((charging_performance * eta) / (speichergroesse / 100)) / 100
-
-			df_daylight[f'soc_delta_{speichergroesse}Wh_netzdienlich'][index] = soc_delta
-			optimized_soc_list.append(soc_delta)
-			optimized_indices.append(index)
-
-		df_daylight_pool = df_daylight_pool.drop(labels=index)
-
-	sum_soc_delta = sum(optimized_soc_list)
-	theoretical_end_soc_max = soc_akt + sum_soc_delta
-	print(f'{theoretical_end_soc_max=}')
-
-	last_chargetime = sorted(optimized_indices)[-1]
-	sum_p_intake = df_daylight[f'GridPowerIn'][:last_chargetime].sum()
-
-	print(f'{sum_p_intake=}')
-
-	# open a pool for 20% more charging minutes
-
-	times_charge_back_up = round(times_charge*0,2)
-
-	optimized_soc_list = []
-	optimized_indices = []
-	for x in range(times_charge_back_up):
-		# print(f'{soc_akt=}')
-		netzeinspeisung_max = max(df_daylight_pool[f'GridPowerOut'])
-		index = df_daylight_pool[f'GridPowerOut'].idxmax()
-
-		# check max
-		charging_performance = min(p_max_in, netzeinspeisung_max)
-		# check min
-		if charging_performance < p_min_in:
-			charging_performance = 0
-			# just take old values that are in df, no optimization possible
-
-		if charging_performance > 0:  # optimization possible
-			surplus = netzeinspeisung_max - charging_performance
-			df_daylight[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich_backup'][index] = surplus
-
-			df_daylight[f'p_delta_{speichergroesse}Wh_netzdienlich_backup'][index] = charging_performance
-			# calc addition to battery
-			soc_delta = ((charging_performance * eta) / (speichergroesse / 100)) / 100
-
-			df_daylight[f'soc_delta_{speichergroesse}Wh_netzdienlich_backup'][index] = soc_delta
-			optimized_soc_list.append(soc_delta)
-			optimized_indices.append(index)
-
-		df_daylight_pool = df_daylight_pool.drop(labels=index)
-
-
-	actual_soc_after_optim = theoretical_end_soc_max - sum_p_intake
-	# start bis ende bei allen bezugsleistungen einen negativien soc delta schreiben
-	# dann mit der while schleife den max einspeise wertfinden und zelle soc delta ändern
-
-	# look for the minute start feed soc
-	max_soc_reached = df[f'current_soc_{speichergroesse}Wh_netzdienlich'].loc[grid_feed_start]
-	assert max_soc_reached < soc_max
-
-	while max_soc_reached <= soc_max:  # End Condition
-		battery_charging_limit_max = False
-
-		# rechnungen
-		for index, row in df_daylight.iterrows(): # only focus at daylight
-
-			# get all information for the calculation
-
-			row_optimized = True if index in optimized_indices else False
-			# reindex all df
-			""" if row_optimized:
-				# check the conditions and if it possible change the values
-				potennzial_soc = soc_akt + soc_delta
-				if potennzial_soc < soc_max:
-					# change values
+			if row[f'soc_delta_{speichergroesse}Wh_netzdienlich'] < 0:
+				if soc_ist < soc_min:
+					soc_akt = soc_ist
+					p_ist = 0
+					soc_delta = 0
 				else:
-					# values remain
+					pass #TODO
 			else:
-				# leave the values and take the last soc as current
-			row_discharge = True if index in soc_deltas_negativ else False
-			if row_discharge:
-				# power out put of the battery if the soc > soc_min
-			else:
-				# go ahead
+				pass #TODO
 
-			if current_soc >=soc_max:
-				# go ahead
-				battery_charging_limit_max = True
+		if row_optimized:
+			# check the conditions and if it possible change the values
+			potenzial_soc = soc_akt + soc_delta
+			if potenzial_soc < soc_max:
+				pass # TODO
+				# change values
 			else:
-				# search in pool for the next max values
-			"""
+				pass # TODO
+				# values remain
+		else:
+
+			# leave the values and take the last soc as current
+		row_discharge = True if index in soc_deltas_negativ else False
+		if row_discharge:
+			# power out put of the battery if the soc > soc_min
+		else:
+			# go ahead
+
+		if current_soc >=soc_max:
+			# go ahead
+			battery_charging_limit_max = True
+		else:
+			# search in pool for the next max values
+
 			# calculation for each row
-
 
 			# Show network interface whether import or withdrawal takes place
 			p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])
