@@ -70,14 +70,16 @@ def main():
 
 				print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
 
-				cal_gridfriendly(df=batterypower_df,
-				                 soc_start=soc_start,
-				                 speichergroesse=size,
-				                 p_max_in=p_max_in,
-				                 p_max_out=p_max_out,
-				                 p_min_in=p_min_in,
-				                 p_min_out=p_min_out
-				                 )
+				batterypower_df, df_day = cal_gridfriendly(df=batterypower_df,
+				                                   soc_start=soc_start,
+				                                   speichergroesse=size,
+				                                   p_max_in=p_max_in,
+				                                   p_max_out=p_max_out,
+				                                   p_min_in=p_min_in,
+				                                   p_min_out=p_min_out,
+				                                   startday=startday,
+				                                   endday=endday
+				                                   )
 
 				print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
 				batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
@@ -90,14 +92,14 @@ def main():
 		# for day in selection_days_start:
 		#   startday = day
 		for size in speichergroessen:
-			plot_power(df=batterypower_df,
-			           startday=startday,
-			           endday=endday,
+			plot_power(df=df_day,
+			           startday=0,
+			           endday=1,
 			           size=size
 			           )
-			plot_power_freq_dist(df=batterypower_df,
-			                     startday=startday,
-			                     endday=endday,
+			plot_power_freq_dist(df=df_day,
+			                     startday=0,
+			                     endday=1,
 			                     size=size
 			                     )
 
@@ -131,13 +133,13 @@ def plot_for_selected_days(daystep, speichergroessen, base_data, soc_start, use_
 
 				print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
 				batterypower_df = cal_gridfriendly(df=batterypower_df,
-				                                           soc_start=soc_start,
-				                                           speichergroesse=size,
-				                                           p_max_in=p_max_in,
-				                                           p_max_out=p_max_out,
-				                                           p_min_out=p_min_out,
-				                                           p_min_in=p_min_in
-				                                           ) # oder cal_battery_gridfriendly
+				                                   soc_start=soc_start,
+				                                   speichergroesse=size,
+				                                   p_max_in=p_max_in,
+				                                   p_max_out=p_max_out,
+				                                   p_min_out=p_min_out,
+				                                   p_min_in=p_min_in
+				                                   )  # oder cal_battery_gridfriendly
 
 				print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
 				batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
@@ -463,6 +465,7 @@ def cal_battery_own_consumption(netz_pv, speichergroesse, soc_start=None):
 
 	return netz_pv, p_max_in, p_max_out, p_min_in, p_min_out  # Leistungen_Speicher_eigenverbrauch
 
+
 """
 def cal_battery_gridfriendly(df, speichergroesse,
                              p_max_in, p_max_out, p_min_in, p_min_out,
@@ -509,7 +512,8 @@ def cal_battery_gridfriendly(df, speichergroesse,
 	return df
 	"""
 
-def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out, soc_start=None):
+
+def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out, startday, endday, soc_start=None, ):
 	"""
 # battery parameter by the size
 	:param df:
@@ -522,12 +526,11 @@ def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_o
 	:return:
 	"""
 
-	for day in list(range(0, 365, 1)):
-		startday = day
-		endday = startday + 1
+	for day in list(range(startday, endday, 1)):  # now limited to 1 day
 		start_idx = startday * 1440
 		end_idx = endday * 1440
-
+		print(f'{start_idx=}')
+		print(f'{end_idx=}')
 		assert start_idx < end_idx
 
 		batt_reached_peak = False
@@ -538,13 +541,12 @@ def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_o
 		netzbezug = []  # result amuont of power form the grid
 		netzeinspeisung = []  # result amuont of power to the grid
 		netzleistung = []  # grid power
-
 		if soc_start and day == 0:
 			soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
 		elif day == 0:
 			soc_akt = soc_max / 2  # assumption: 45% charged at startup
 		else:
-			soc_akt = df[f'current_soc_{speichergroesse}Wh_netzdienlich'].iloc[start_idx - 1]
+			soc_akt = df[f'current_soc_{speichergroesse}Wh_eigenverbrauch'].iloc[start_idx - 1] # TODO
 
 		df_day = df.iloc[start_idx:end_idx].copy(deep=True)
 
@@ -555,10 +557,7 @@ def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_o
 			p_ist = 0
 
 			# Show network interface whether import or withdrawal takes place
-			p_soll = (row['GridPowerIn'] - row['GridPowerOut'])
-			print(f'{p_soll=}')
-			print(type(p_soll))
-			# p_soll = float(p_soll)
+			p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])
 
 			if p_soll >= 0:  # check for positive
 				# p_supply = p_soll * (1 + (1 - eta))  # factor in losses
@@ -621,16 +620,16 @@ def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_o
 		# check if optimization is needed
 		if batt_reached_peak:
 			df_day, last_soc = charge_gridfriendly(df=df_day,
-			                             speichergroesse=speichergroesse,
-			                             p_max_in=p_max_in,
-			                             p_max_out=p_max_out,
-			                             p_min_in=p_min_in,
-			                             p_min_out=p_min_out
-			                             )
+			                                       speichergroesse=speichergroesse,
+			                                       p_max_in=p_max_in,
+			                                       p_max_out=p_max_out,
+			                                       p_min_in=p_min_in,
+			                                       p_min_out=p_min_out
+			                                       )
 
 		# df.append(df_day)  # TODO correct merging
 		df = pd.concat([df, df_day], axis=1)
-	return df
+	return df, df_day
 
 
 def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out):
@@ -728,7 +727,7 @@ def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_mi
 			"""
 
 		if not row_optimized:
-			if row[f'soc_delta_{speichergroesse}Wh_netzdienlich'] < 0: # check for negativ soc_delta
+			if row[f'soc_delta_{speichergroesse}Wh_netzdienlich'] < 0:  # check for negativ soc_delta
 				p_ist = min(p_max_out, float(row['GridPowerIn']))  # Threshold for upper bound
 
 				if p_ist >= p_min_out:  # Threshold for lower bound
@@ -749,13 +748,12 @@ def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_mi
 				p_ist = 0
 				soc_delta = 0
 
-		else: # if row_optimized:
+		else:  # if row_optimized:
 			soc_delta = df[f'soc_delta_{speichergroesse}Wh_netzdienlich'][index]
 			p_delta = df[f'p_delta_{speichergroesse}Wh_netzdienlich'][index]
 			p_netzeinspeisung = df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'][index]
 
-
-			if row[f'GridPowerOut'] - p_delta <0:
+			if row[f'GridPowerOut'] - p_delta < 0:
 				# änderung von wert p_delta
 				p_delta = row[f'GridPowerOut']
 				if p_delta < p_min_in:
@@ -772,7 +770,6 @@ def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_mi
 				p_ist = 0
 				soc_delta = 0
 
-		print(f'Punkt 4')
 		if p_ist > 0:
 			p_netzbezug = row['GridPowerIn'] - max(p_ist, 0)
 		if p_ist < 0:
@@ -783,19 +780,18 @@ def charge_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_mi
 
 		p_netz = p_netzbezug - p_netzeinspeisung
 
-
 		soc.append(soc_ist)
 		p_deltas.append(p_ist)
 		soc_deltas.append(soc_delta)
 		netzbezug.append(p_netzbezug)
 		netzeinspeisung.append(p_netzeinspeisung)
 		netzleistung.append(p_netz)
-	print(f'Punkt 5')
-	df[f'p_delta_{speichergroesse}Wh_netzdienlich_temp'] = p_deltas
-	df[f'current_soc_{speichergroesse}Wh_netzdienlich_temp'] = soc
-	df[f'soc_delta_{speichergroesse}Wh_netzdienlich_temp'] = soc_deltas
-	df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich_temp'] = netzbezug
-	df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich_temp'] = netzeinspeisung
+
+	df[f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_deltas
+	df[f'current_soc_{speichergroesse}Wh_netzdienlich'] = soc
+	df[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = soc_deltas
+	df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = netzbezug
+	df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = netzeinspeisung
 	last_soc = soc_ist
 
 	return df, last_soc
@@ -822,7 +818,8 @@ def plot_power(df, startday, endday, size):
 	plt.plot(netzbezug_eigen, label='Speicher Eigenverbrauch', alpha=0.4, zorder=2)
 	plt.plot(einspeisung_eigen, label='Speicher Eigenverbrauch', alpha=0.4, zorder=2)
 
-	# Leistungsverlauf mit Quatierspeicher nach netzdienlich
+	# Leistungsverlauf mit Quartierspeicher nach netzdienlich
+
 	netzbezug_eigen = df[f'p_netzbezug_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
 	einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
 	einspeisung_eigen = einspeisung_eigen.mul(-1)
@@ -850,7 +847,7 @@ def plot_power(df, startday, endday, size):
 def plot_power_freq_dist(df, startday, endday, size, binsize=100):
 	assert startday < endday
 	bins = 25
-	date = df.index[startday * 1440 + 200]
+	date = df.index[startday * 1440]
 	date = date.strftime('%Y-%m-%d')
 	density = False
 	plt.style.use('fivethirtyeight')
@@ -858,7 +855,11 @@ def plot_power_freq_dist(df, startday, endday, size, binsize=100):
 	# Betrachtung der Leistungen am Netzpunkt ohne Quartierspeicher
 	netzbezug_pure = df[f'GridPowerIn'][startday * 1440:endday * 1440]
 	einspeisung_pure = df[f'GridPowerOut'][startday * 1440:endday * 1440]
+
 	min_out = einspeisung_pure.max()
+	print(f'{df.keys()=}')
+	print(f'{einspeisung_pure=}')
+	print(f'{min_out=}')
 	bins_out = math.ceil(min_out / binsize)
 	max_in = netzbezug_pure.max()
 	bins_in = math.ceil(max_in / binsize)
