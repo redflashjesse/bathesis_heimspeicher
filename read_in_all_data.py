@@ -1,20 +1,17 @@
 # Imports
-from datetime import timedelta
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
 import glob
-import math
+from datetime import timedelta
+
+import pandas as pd
 
 
-def main():
-	original_read = True
-	print("--- Funktion read_in_all_data ---")
-	base_data = read_in_all_data()
-	return base_data
+def read_in_all_data(original_read=True):
+	"""
 
-def read_in_all_data():
-
+	:return:
+	:param original_read:
+	:return:
+	"""
 	if original_read:
 		print("--- Read in Smartmeter Daten ---")
 		base_data = read_pv_netz_combined()
@@ -213,7 +210,3 @@ def cal_pv_eigennutzung(netz_pv):
 		eigenverbrauch.append(internally_used_power)
 	netz_pv['PV-Eigennutzung'] = eigenverbrauch
 	return netz_pv
-
-
-if __name__ == "__main__":
-	main()

@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import glob
 import math
+
 def cal_battery_own_consumption(netz_pv, speichergroesse, soc_start=None):
 	"""
 		Rechnung um den Speicher zu simulieren, die Leistungswerte und den neuen
@@ -18,6 +19,7 @@ def cal_battery_own_consumption(netz_pv, speichergroesse, soc_start=None):
 		 :return: Dataframe
 		 """
 
+	# todo in eine schleife schreiben so dass die liste von Speicher groeßen entgegen genommen werden kann
 	eta = 0.9  # Efficiency factor
 	soc_max = 0.9  # [range: 0-1 ]
 	soc_min = 0.1  # [range: 0-1 ]

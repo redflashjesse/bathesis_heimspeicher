@@ -1,34 +1,51 @@
-import imports_and_variables
+# Imports
+import pandas as pd
+from datetime import datetime, timedelta
 
-# DataFrame aus Pickle-Datei laden
-data = pd.read_pickle('documents/netz_pv_mit_speichersimulation_eigenverbrauch.pkl')
 
-# Daten im df GridPowerIn, GridPowerOut,
-# (speichergrößen abhänig) p_delta, soc_delta,
-# current_soc (Betrachtung zu beginn der Minute),
-# p_netzeinspeisung, p_netzbezug
+def cal_grid_friendly(df, p_max_in, p_max_out, p_min_in, p_min_out, speichergroesse):
+	"""
+	Daten im df GridPowerIn, GridPowerOut,
+ (speichergrößen abhänig) p_delta, soc_delta,
+ current_soc (Betrachtung zu Beginn der Minute),
+ p_netzeinspeisung, p_netzbezug
+		:param speichergroesse:
+		:param p_max_in:
+		:param p_max_out:
+		:param p_min_in:
+		:param p_min_out:
+		:return:
+		"""
+	# Schleife durch jeden Tag im Jahr gehen
+	unique_days = df.index.date.tolist()
+	unique_days = list(dict.fromkeys(unique_days))
 
-def cal_grid_friendly():
+	for day in unique_days:
+		following_day = day + timedelta(days=1)
 
-        # Schleife durch jeden Tag im Jahr gehen
-    for day in data['Timestamp'].dt.date.unique('D'):
-        print("Datum:", day)
+		df_day = df.loc[(df.index.date >= day)
+		                & (df.index.date < following_day)]
 
-        # Schleife durch jede Minute des Tages gehen
-        for _, row in data.loc[data['Timestamp'].dt.date == day].iterrows():
-            print("Minute:", row['Timestamp'].time())
-            print("GridPowerIn:", row['GridPowerIn'])
-            print("GridPowerOut:", row['GridPowerOut'])
+		print(f'{len(df_day)}')
 
-        # Wenn es 1440 Werte für den Tag gibt, Timestamp auf Mitternacht setzen
-        if len(data.loc[data['Timestamp'].dt.date == day]) == 1440:
-            data.loc[data['Timestamp'].dt.date == day, 'Timestamp'] = data.loc[
-                data['Timestamp'].dt.date == day, 'Timestamp'].dt.floor('D')
+		print("Datum:", day)
+		'''
+		# Schleife durch jede Minute des Tages gehen
+		for _, row in df.loc[df['Timestamp'].datetime.date == day].iterrows():
+			print("Minute:", row['Timestamp'].time())
+			print("GridPowerIn:", row['GridPowerIn'])
+			print("GridPowerOut:", row['GridPowerOut'])
 
-    # Die ersten fünf Zeilen des modifizierten DataFrames anzeigen
-    print(data.head())
+		# Wenn es 1440 Werte für den Tag gibt, Timestamp auf Mitternacht setzen
+		if len(df.loc[df['Timestamp'].datetime.date == day]) == 1440:
+			df.loc[df['Timestamp'].datetime.date == day, 'Timestamp'] = df.loc[
+				df['Timestamp'].datetime.date == day, 'Timestamp'].datetime.floor('D')
 
-    """
+	# Die ersten fünf Zeilen des modifizierten DataFrames anzeigen
+	print(df.head())
+	'''
+
+	"""
             if not row_optimized: # Todo hier fällt rein löschen der Beladeleistungen und neues entladen bestimmen
     
                 if row[f'soc_delta_{speichergroesse}Wh_netzdienlich'] < 0: # check for negativ soc_delta
@@ -55,4 +72,4 @@ def cal_grid_friendly():
                     pass # TODO delta werte auf null und werte beibehalten
                     # values remain
                  """
-    return # df
+	return  # df
