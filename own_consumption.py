@@ -6,7 +6,7 @@ import numpy as np
 import glob
 import math
 
-def cal_battery_own_consumption(netz_pv, speichergroesse, soc_start=None):
+def cal_battery_own_consumption(netz_pv, soc_max, soc_min, zeit, speichergroessen, c_out, c_in, min_flow_threshold, soc_start=None):
 	"""
 		Rechnung um den Speicher zu simulieren, die Leistungswerte und den neuen
 		State of Charge in einer Liste wiederzugeben.
@@ -19,106 +19,97 @@ def cal_battery_own_consumption(netz_pv, speichergroesse, soc_start=None):
 		 :return: Dataframe
 		 """
 
-	# todo in eine schleife schreiben so dass die liste von Speicher groeßen entgegen genommen werden kann
-	eta = 0.9  # Efficiency factor
-	soc_max = 0.9  # [range: 0-1 ]
-	soc_min = 0.1  # [range: 0-1 ]
-	zeit = 90  # [minute]
+	for speichergroesse in speichergroessen:
+		p_ges = speichergroesse / zeit  # [W] / [minute]
+		p_max_out = p_ges * c_out
+		p_min_out = p_max_out * min_flow_threshold
+		p_max_in = p_ges * c_in
+		p_min_in = p_max_in * min_flow_threshold
 
-	p_ges = speichergroesse / zeit  # [W] / [minute]
-	c_out = 1  # Coulombe Factor, depends on battery rating
-	c_in = 0.5  # Coulombe factor
-	min_flow_threshold = 0.1  # threshold for minimal flow for action to be taken [range: 0-1] in %
+		# Efficiency included in the borderline cases, set new limits
+		p_max_out *= eta
+		p_min_out *= eta
+		p_max_in = p_max_in * (1 + (1 - eta))
+		p_min_in = p_min_in * (1 + (1 - eta))
 
-	p_max_out = p_ges * c_out
-	p_min_out = p_max_out * min_flow_threshold
-	p_max_in = p_ges * c_in
-	p_min_in = p_max_in * min_flow_threshold
+		soc = []  # minute-wise soc
+		p_delta = []  # the difference in power per minute
+		soc_deltas = []  # the difference in state of charge
+		netzbezug = []  # result amuont of power form the grid
+		netzeinspeisung = []  # result amuont of power to the grid
+		netzleistung = []  # grid power
 
-	# Efficiency included in the borderline cases, set new limits
-	p_max_out *= eta
-	p_min_out *= eta
-	p_max_in = p_max_in * (1 + (1 - eta))
-	p_min_in = p_min_in * (1 + (1 - eta))
+		if soc_start:
+			soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
+		else:
+			soc_akt = soc_max / 2  # assumption: 45% charged at startup
 
-	soc = []  # minute-wise soc
-	p_delta = []  # the difference in power per minute
-	soc_deltas = []  # the difference in state of charge
-	netzbezug = []  # result amuont of power form the grid
-	netzeinspeisung = []  # result amuont of power to the grid
-	netzleistung = []  # grid power
+		for index, row in netz_pv.iterrows():
+			# Default: no change, no in, no out, p_soll = 0
+			soc_ist = soc_akt
+			soc_delta = 0
+			p_ist = 0
+			# Show network interface whether import or withdrawal takes place
+			p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])
 
-	if soc_start:
-		soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
-	else:
-		soc_akt = soc_max / 2  # assumption: 45% charged at startup
+			if p_soll > 0:  # check for positive
+				# p_supply = p_soll * (1 + (1 - eta))  # factor in losses
+				p_ist = min(p_max_out, p_soll)  # Threshold for upper bound
 
-	for index, row in netz_pv.iterrows():
-		# Default: no change, no in, no out, p_soll = 0
-		soc_ist = soc_akt
-		soc_delta = 0
-		p_ist = 0
-		# Show network interface whether import or withdrawal takes place
-		p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])
+				if p_ist >= p_min_out:  # Threshold for lower bound
+					soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
+					soc_akt = soc_ist - soc_delta
+				else:
+					p_ist = 0
+					soc_akt = 0
 
-		if p_soll > 0:  # check for positive
-			# p_supply = p_soll * (1 + (1 - eta))  # factor in losses
-			p_ist = min(p_max_out, p_soll)  # Threshold for upper bound
+				# Capacity check, prevent depletion
+				if soc_akt < soc_min:
+					soc_akt = soc_ist
+					p_ist = 0
+					soc_delta = 0
 
-			if p_ist >= p_min_out:  # Threshold for lower bound
-				soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
-				soc_akt = soc_ist - soc_delta
-			else:
-				p_ist = 0
-				soc_akt = 0
+			if p_soll < 0:  # Query whether storage can be carried out with excess current # case p_soll negative
+				p_supply = abs(p_soll)
+				p_ist = min(p_max_in, p_supply)
 
-			# Capacity check, prevent depletion
-			if soc_akt < soc_min:
-				soc_akt = soc_ist
-				p_ist = 0
-				soc_delta = 0
+				if p_ist >= p_min_in:
+					p_ist = -p_ist  # invert value to reflect incoming p
+					soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
+					soc_akt = soc_ist - soc_delta
+				else:
+					p_ist = 0
+					soc_akt = 0
 
-		if p_soll < 0:  # Query whether storage can be carried out with excess current # case p_soll negative
-			p_supply = abs(p_soll)
-			p_ist = min(p_max_in, p_supply)
+				# Capacity check, prevent overcharge
+				if soc_akt > soc_max:
+					soc_akt = soc_ist
+					p_ist = 0
+					soc_delta = 0
 
-			if p_ist >= p_min_in:
-				p_ist = -p_ist  # invert value to reflect incoming p
-				soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
-				soc_akt = soc_ist - soc_delta
-			else:
-				p_ist = 0
-				soc_akt = 0
+			# calculation of the grid power by intergration of a battery
 
-			# Capacity check, prevent overcharge
-			if soc_akt > soc_max:
-				soc_akt = soc_ist
-				p_ist = 0
-				soc_delta = 0
+			if p_ist > 0:
+				p_netzbezug = row['GridPowerIn'] - max(p_ist, 0)
+			if p_ist < 0:
+				p_netzeinspeisung = row['GridPowerOut'] + min(p_ist, 0)
+			else:  # p_ist==0:
+				p_netzbezug = row['GridPowerIn']
+				p_netzeinspeisung = row['GridPowerOut']
 
-		# calculation of the grid power by intergration of a battery
+			p_netz = p_netzbezug - p_netzeinspeisung
 
-		if p_ist > 0:
-			p_netzbezug = row['GridPowerIn'] - max(p_ist, 0)
-		if p_ist < 0:
-			p_netzeinspeisung = row['GridPowerOut'] + min(p_ist, 0)
-		else:  # p_ist==0:
-			p_netzbezug = row['GridPowerIn']
-			p_netzeinspeisung = row['GridPowerOut']
+			soc.append(soc_ist)
+			p_delta.append(p_ist)
+			soc_deltas.append(soc_delta)
+			netzbezug.append(p_netzbezug)
+			netzeinspeisung.append(p_netzeinspeisung)
+			netzleistung.append(p_netz)
 
-		p_netz = p_netzbezug - p_netzeinspeisung
+		netz_pv[f'p_delta_{speichergroesse}Wh_eigenverbrauch'] = p_delta
+		netz_pv[f'current_soc_{speichergroesse}Wh_eigenverbrauch'] = soc
+		netz_pv[f'soc_delta_{speichergroesse}Wh_eigenverbrauch'] = soc_deltas
+		netz_pv[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch'] = netzbezug
+		netz_pv[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'] = netzeinspeisung
 
-		soc.append(soc_ist)
-		p_delta.append(p_ist)
-		soc_deltas.append(soc_delta)
-		netzbezug.append(p_netzbezug)
-		netzeinspeisung.append(p_netzeinspeisung)
-		netzleistung.append(p_netz)
-
-	netz_pv[f'p_delta_{speichergroesse}Wh_eigenverbrauch'] = p_delta
-	netz_pv[f'current_soc_{speichergroesse}Wh_eigenverbrauch'] = soc
-	netz_pv[f'soc_delta_{speichergroesse}Wh_eigenverbrauch'] = soc_deltas
-	netz_pv[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch'] = netzbezug
-	netz_pv[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'] = netzeinspeisung
-
-	return netz_pv, p_max_in, p_max_out, p_min_in, p_min_out  # Leistungen_Speicher_eigenverbrauch
+	return netz_pv  # Leistungen_Speicher_eigenverbrauch
