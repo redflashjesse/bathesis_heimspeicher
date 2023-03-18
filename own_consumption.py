@@ -6,7 +6,13 @@ import numpy as np
 import glob
 import math
 
-def cal_battery_own_consumption(netz_pv, soc_max, soc_min, zeit, speichergroessen, c_out, c_in, min_flow_threshold, soc_start=None):
+
+def cal_battery_own_consumption(netz_pv, soc_max,
+                                soc_min, zeit,
+                                speichergroessen, c_out, c_in,
+                                min_flow_threshold,
+                                eta, soc_start=None
+                                ):
 	"""
 		Rechnung um den Speicher zu simulieren, die Leistungswerte und den neuen
 		State of Charge in einer Liste wiederzugeben.
