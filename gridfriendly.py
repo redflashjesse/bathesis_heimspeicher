@@ -36,20 +36,12 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 		# set the maximum of soc_delta in case for charging
 		soc_delta_max = (p_max_in / (speichergroesse / 100)) / 100
 
-		soc = []  # minute-wise soc
-		p_delta = []  # the difference in power per minute
-		soc_deltas = []  # the difference in state of charge
-		netzbezug = []  # result amuont of power form the grid
-		netzeinspeisung = []  # result amuont of power to the grid
-		netzleistung = []  # grid power
-
 		# Insert new empty columns, we initialize the new columns here and fill them later
 		df[f'p_delta_{speichergroesse}Wh_netzdienlich'] = np.nan
 		df[f'current_soc_{speichergroesse}Wh_netzdienlich'] = np.nan
 		df[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = np.nan
 		df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = np.nan
 		df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = np.nan
-		print(df.head())
 
 		if soc_start:
 			soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
@@ -62,12 +54,22 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 		# Schleife durch jeden Tag im Jahr gehen
 		unique_days = df.index.date.tolist()
 		unique_days = list(dict.fromkeys(unique_days))
+		first_day = unique_days[0]
+
 		for day in unique_days:
 			following_day = day + timedelta(days=1)
 			df_day = df.loc[(df.index.date >= day)
-			                & (df.index.date < following_day)]
+			                & (df.index.date < following_day)].copy()
 			# set for each day the variable
 			soc_reached_limit = False
+
+			soc = []  # minute-wise soc
+			p_delta = []  # the difference in power per minute
+			soc_deltas = []  # the difference in state of charge
+			netzbezug = []  # result amuont of power form the grid
+			netzeinspeisung = []  # result amuont of power to the grid
+			netzleistung = []  # grid power
+
 			# hier soll einmal das df durch gerechnet werden
 			for index, row in df_day.iterrows():
 				soc_ist = soc_akt
@@ -109,68 +111,94 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 				netzeinspeisung.append(p_netzeinspeisung)
 				netzleistung.append(p_netz)  # TODO spalte ins df eintragen?
 
-			df_day[f'p_delta_{speichergroesse}Wh_eigenverbrauch'] = p_delta
-			df_day[f'current_soc_{speichergroesse}Wh_eigenverbrauch'] = soc
-			df_day[f'soc_delta_{speichergroesse}Wh_eigenverbrauch'] = soc_deltas
-			df_day[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch'] = netzbezug
-			df_day[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'] = netzeinspeisung
+			df_day[f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_delta
+			df_day[f'current_soc_{speichergroesse}Wh_netzdienlich'] = soc
+			df_day[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = soc_deltas
+			df_day[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = netzbezug
+			df_day[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = netzeinspeisung
 
 			if not soc_reached_limit:
-				last_soc = soc_ist
+
 				df.loc[(df.index.date >= day)
 				       & (df.index.date < following_day)] = df_day
-				pass  # TODO save result of this day in df
-			else:
-				soc_akt = last_soc
+				print(f'No optimization needed in {day}')
+			# TODO check if saving works
+
+			else:  # case reached soc limit
+				if day == first_day:
+					print('reached Battery Max on first day')
+					if soc_start:
+						soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
+					else:
+						soc_akt = soc_max / 2  # assumption: 45% charged at startup
+
+				else:
+					print(f'Optimization needed in {day}')
+					first_minute_of_day = df_day.first_valid_index()
+					minute_before = first_minute_of_day - timedelta(minutes=1)
+					print(f'{first_minute_of_day=}')
+					print(f'{minute_before=}')
+					soc_akt = df.loc[minute_before, f'current_soc_{speichergroesse}Wh_netzdienlich']
 				# Find index of first non-zero value in 'Netzeinspeisung'
 				index_first_non_zero = df_day[df_day[f'GridPowerOut'] > 0].index[0]
-				print(f'{index_first_non_zero=}')
-				print(df_day.keys())
+
 				# Find corresponding value of 'current_soc'
 				current_soc = df_day.loc[index_first_non_zero, f'current_soc_{speichergroesse}Wh_netzdienlich']
 
 				# Calculate number of steps to get from 'current_soc' to 'soc_max'
-				x = int(round((soc_max - current_soc) / soc_delta_max))
+				optimization_steps_estimate = int(round((soc_max - current_soc) / soc_delta_max))
+
+				print(f'{optimization_steps_estimate=}')
 
 				# Index der x höchsten Werte finden
-				idx = df_day['Netzeinspeisung'].nlargest(x).index.tolist()
+				optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()
+				print(f'{optimizable_indices=}')
 
 				for index, row in df_day.iterrows():
 					# cheken was gemacht werden muss für die Zeile ob laden oder entladen
 					# entladen ist gleich geblieben
-					# beim laden muss neben dem soc zuerst der index in der liste idx
+					# beim laden muss neben dem soc zuerst der index in der liste optimizable_indices
 					# gefunden werden damit geladenwerden kann
 
-					# check if the actuelly index listed by idx
-					for index in idx:
-						pass  # hier wird geladen
-					else:
-						pass  # hier wird nicht geladen
+					p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])  # Bezug - Einspeisung
+
+					if p_soll > 0: # Battery discharging
+						# TODO alle werte sollten normal ausgerechnet werden
+
+
+					else: # Battery charging possible
+						# check if optimizable index is present
+						if index not in optimizable_indices:
+							# TODO
+							#charging should be deferred
+							pass
+						else:
+							# battery charging should go through
+							# TODO
+							pass
+
+
 
 				# hier einen neuen durchlauf machen und wenn einspeisung zu erstenmal erscheint dann max Werte in einliste schreiben mit abgleich vom derzeiten soc
 				pass  # start gridfriendly
 
-			# save each day in df_day
+		# save each day in df_day
 
-			# save each day after cal into a df for the hole year
-			# fals kein voller soc erreicht wird, ablegen speichern und nächsten Tag anschauen
+		# save each day after cal into a df for the hole year
+		# fals kein voller soc erreicht wird, ablegen speichern und nächsten Tag anschauen
 
-			# falls ja dann ab (vielleicht sonnenaufgang) ein charge gridfriendly aufrufen und das entstanden df über schreiben
+		# falls ja dann ab (vielleicht sonnenaufgang) ein charge gridfriendly aufrufen und das entstanden df über schreiben
 
-			# grid charge friendly: schauen wieviele minuten muss geladen werden um die soc grenze zu ereichen die Liste mit den indexen ist ausreichend
+		# grid charge friendly: schauen wieviele minuten muss geladen werden um die soc grenze zu ereichen die Liste mit den indexen ist ausreichend
 
-			# schauen ob leistung benotigt wird aus speicher und bedinnungen überprüfen
+		# schauen ob leistung benotigt wird aus speicher und bedinnungen überprüfen
 
-			# schauen ob leistung aufgenommen wird uber indexliste und bedinnungen überprüfen
+		# schauen ob leistung aufgenommen wird uber indexliste und bedinnungen überprüfen
 
-			# neue werde in spalten ablegen dies vlt concaten
+		# neue werde in spalten ablegen dies vlt concaten
 
-			# ein gesamtes df erstellen
-			# idee: aus spalte a im df_day die werte in eine liste schreiben  und dann die liste als neue dpalte für das ganze jahr in df einfügen
-
-			print(f'{len(df_day)}')
-
-			print("Datum:", day)
+		# ein gesamtes df erstellen
+		# idee: aus spalte a im df_day die werte in eine liste schreiben  und dann die liste als neue dpalte für das ganze jahr in df einfügen
 
 		"""
 				if not row_optimized: # Todo hier fällt rein löschen der Beladeleistungen und neues entladen bestimmen
