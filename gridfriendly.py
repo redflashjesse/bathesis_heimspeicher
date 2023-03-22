@@ -75,7 +75,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 				soc_ist = soc_akt
 				# Show network interface whether import or withdrawal takes place
 				p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])  # Bezug - Einspeisung
-				if p_soll > 0:
+				if p_soll > 0: # Discharging battery # TODO check soc abgleich
 					p_ist = min(p_max_out, max(p_min_out, p_soll * (1 + (1 - eta))))
 					soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
 					soc_akt = max(soc_min, soc_ist - soc_delta) if soc_akt < soc_min else soc_ist - soc_delta
@@ -153,7 +153,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 				# Index der x höchsten Werte finden
 				optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()
 				print(f'{optimizable_indices=}')
-
+				# start gridfriendly
 				for index, row in df_day.iterrows():
 					# cheken was gemacht werden muss für die Zeile ob laden oder entladen
 					# entladen ist gleich geblieben
@@ -164,6 +164,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 
 					if p_soll > 0: # Battery discharging
 						# TODO alle werte sollten normal ausgerechnet werden
+						pass
 
 
 					else: # Battery charging possible
@@ -176,11 +177,6 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 							# battery charging should go through
 							# TODO
 							pass
-
-
-
-				# hier einen neuen durchlauf machen und wenn einspeisung zu erstenmal erscheint dann max Werte in einliste schreiben mit abgleich vom derzeiten soc
-				pass  # start gridfriendly
 
 		# save each day in df_day
 
