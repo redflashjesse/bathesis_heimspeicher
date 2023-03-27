@@ -85,7 +85,7 @@ def cal_battery_own_consumption(netz_pv, soc_max,
 					soc_akt = soc_ist - soc_delta
 				else:
 					p_ist = 0
-					soc_akt = 0
+					soc_akt = soc_ist
 
 				# Capacity check, prevent overcharge
 				if soc_akt > soc_max:

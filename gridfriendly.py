@@ -2,8 +2,6 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-
-
 def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, c_in, min_flow_threshold,
                       soc_start=None
                       ):
@@ -42,6 +40,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 		df[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = np.nan
 		df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = np.nan
 		df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = np.nan
+		df[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] = np.nan
 
 		if soc_start:
 			soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
@@ -63,8 +62,8 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 			# set for each day the variable
 			soc_reached_limit = False
 
-			soc = []  # minute-wise soc
-			p_delta = []  # the difference in power per minute
+			socs = []  # minute-wise soc
+			p_deltas = []  # the difference in power per minute
 			soc_deltas = []  # the difference in state of charge
 			netzbezug = []  # result amuont of power form the grid
 			netzeinspeisung = []  # result amuont of power to the grid
@@ -79,17 +78,17 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 					p_ist = min(p_max_out, max(p_min_out, p_soll * (1 + (1 - eta))))
 					soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
 					soc_akt = max(soc_min, soc_ist - soc_delta) if soc_akt < soc_min else soc_ist - soc_delta
-					if soc_akt > soc_max:
+					if soc_akt > soc_max: # todo prüfen ob die bedinnung stimmt
 						soc_reached_limit = True
 						soc_akt = soc_ist
 						p_ist = 0
 						soc_delta = 0
-				else:
+				else: # charging the battery
 					p_supply = abs(p_soll)
 					p_ist = -min(p_max_in, max(p_min_in, p_supply))
 					soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
 					soc_akt = min(soc_max, soc_ist - soc_delta) if soc_akt > soc_max else soc_ist - soc_delta
-					if soc_akt < soc_min:
+					if soc_akt < soc_min: # todo prüfen ob die bedinnung stimmt
 						soc_akt = soc_ist
 						p_ist = 0
 						soc_delta = 0
@@ -104,27 +103,34 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 
 				p_netz = p_netzbezug - p_netzeinspeisung
 
-				soc.append(soc_ist)
-				p_delta.append(p_ist)
+				socs.append(soc_ist)
+				p_deltas.append(p_ist)
 				soc_deltas.append(soc_delta)
 				netzbezug.append(p_netzbezug)
 				netzeinspeisung.append(p_netzeinspeisung)
-				netzleistung.append(p_netz)  # TODO spalte ins df eintragen?
+				netzleistung.append(p_netz)
 
-			df_day[f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_delta
-			df_day[f'current_soc_{speichergroesse}Wh_netzdienlich'] = soc
+			df_day[f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_deltas
+			df_day[f'current_soc_{speichergroesse}Wh_netzdienlich'] = socs
 			df_day[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = soc_deltas
 			df_day[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = netzbezug
 			df_day[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = netzeinspeisung
+			df_day[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] = netzleistung
 
 			if not soc_reached_limit:
-
 				df.loc[(df.index.date >= day)
 				       & (df.index.date < following_day)] = df_day
 				print(f'No optimization needed in {day}')
-			# TODO check if saving works
 
 			else:  # case reached soc limit
+				# open all list are need
+				socs_opt = []
+				p_deltas_opt = []
+				soc_deltas_opt = []
+				list_netzbezug_opt = []
+				list_netzeinspeisung_opt = []
+				list_netzleistung_opt = []
+
 				if day == first_day:
 					print('reached Battery Max on first day')
 					if soc_start:
@@ -163,22 +169,66 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 					p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])  # Bezug - Einspeisung
 
 					if p_soll > 0: # Battery discharging
+						if min(p_max_out, p_soll) > p_min_out and soc_akt > soc_min:
+							p_ist = max(p_min_out, min(p_max_out, p_soll))
+							soc_delta = ((p_ist * (1 + (1 - eta))) / speichergroesse ) / 100
+							soc_ist = soc_akt - soc_delta
+						else: # p_soll out of the possible range and index is not in the list optimizable_indices
+							p_ist = p_soll
+							soc_delta = 0
+							soc_ist = soc_akt
 						# TODO alle werte sollten normal ausgerechnet werden
-						pass
-
+						#pass
 
 					else: # Battery charging possible
 						# check if optimizable index is present
 						if index not in optimizable_indices:
+							p_ist = p_soll
+							soc_delta = 0
+							soc_ist = soc_akt
 							# TODO
 							#charging should be deferred
-							pass
+							# pass # if index größer als der letze optimizable_indices dann laden wenn soc kleiner als soc_max ist
 						else:
 							# battery charging should go through
+							p_soll = abs(p_soll)
+							if min(p_max_in, p_soll) > p_min_in:
+								p_ist = max(p_min_in, min(p_max_in, p_soll))
+								soc_delta = ((p_ist * (eta)) / speichergroesse) / 100
+								soc_ist = soc_akt + soc_delta
+								p_ist = - p_ist
 							# TODO
-							pass
 
-		# save each day in df_day
+						if not p_ist == 0:
+							if p_ist > 0:
+								p_netzbezug_opt = row['GridPowerIn'] - max(p_ist, 0)
+								p_netzeinspeisung_opt = 0
+							if p_ist < 0:
+								p_netzeinspeisung_opt = row['GridPowerOut'] + min(p_ist, 0)
+								p_netzbezug_opt = 0
+						else:  # p_ist==0:
+							p_netzbezug_opt = row['GridPowerIn']
+							p_netzeinspeisung_opt = row['GridPowerOut']
+
+						p_netzleistung_opt = p_netzbezug_opt - p_netzeinspeisung_opt
+
+							# pass
+
+						# fill the list with values for each minute
+						socs_opt.append(soc_ist)
+						p_deltas_opt.append(p_ist)
+						soc_deltas_opt.append(soc_delta)
+						list_netzbezug_opt.append(p_netzbezug_opt)
+						list_netzeinspeisung_opt.append(p_netzeinspeisung_opt)
+						list_netzleistung_opt.append(p_netzleistung_opt)
+				# save df_day if optimiziation been used
+				df_day[f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_deltas_opt
+				df_day[f'current_soc_{speichergroesse}Wh_netzdienlich'] = socs_opt
+				df_day[f'soc_delta_{speichergroesse}Wh_netzdienlich'] = soc_deltas_opt
+				df_day[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] = list_netzbezug_opt
+				df_day[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = list_netzeinspeisung_opt
+				df_day[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] = list_netzleistung_opt
+			# save each day in df_day
 
 		# save each day after cal into a df for the hole year
 		# fals kein voller soc erreicht wird, ablegen speichern und nächsten Tag anschauen
