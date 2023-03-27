@@ -1,19 +1,15 @@
 # Imports
-from datetime import timedelta
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
-import glob
-import math
-
-# Importieren aller benötigten Funktionen aus den Dateien
 
 from gridfriendly import cal_grid_friendly
 from own_consumption import cal_battery_own_consumption
+from plot_for_selected_days import plot_for_selected_days
 from plot_histogram import plot_histogram
 from plot_trend_of_power import plot_power
 from read_in_all_data import read_in_all_data
-from plot_for_selected_days import plot_for_selected_days
+
+# Importieren aller benötigten Funktionen aus den Dateien
 
 # Global Battery Params
 eta = 0.9  # Efficiency factor
@@ -81,20 +77,25 @@ def main():
 	                                  min_flow_threshold=min_flow_threshold
 	                                  )
 
+	print(f'--- Save Optimized Netzdienlich als pickle ---')
+	filename = f'documents/speichersimulation_optimiert_netzdienlich.pkl'
+	grid_friendly.to_pickle(filename)
+
 	plot_for_selected_days(daystep=daysteps,
 	                       speichergroessen=speichergroessen,
-	                       base_data=data,
-	                       soc_start=soc_start,
-	                       use_data_for_plot=use_data_for_plot
+	                       df=grid_friendly,
+	                       use_data_for_plot=use_data_for_plot,
+	                       filename=filename
 	                       )
 
 	plot_histogram(grid_friendly, own_consumption)
-	plot_power(data)
+	plot_power(grid_friendly)
 
 	# print(len(base_data))
 	if plot_by_days:
-		plot_for_selected_days(daystep=daysteps, speichergroessen=speichergroessen,
-		                       base_data=data, soc_start=soc_start,
+		plot_for_selected_days(daystep=daysteps,
+		                       speichergroessen=speichergroessen,
+		                       df=grid_friendly,
 		                       use_data_for_plot=use_data_for_plot
 		                       )
 	else:
@@ -102,7 +103,7 @@ def main():
 			for size in speichergroessen:
 				print(f"--- Simulation Batterie nach Eigenverbrauch mit {size} Wh---")
 				batterypower_df, p_max_in, p_max_out, p_min_in, p_min_out = cal_battery_own_consumption(
-						netz_pv=data,
+						netz_pv=grid_friendly,
 						soc_start=soc_start,
 						speichergroesse=size
 				)
@@ -113,8 +114,10 @@ def main():
 
 				print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
 
-				batterypower_df, df_day = cal_grid_friendly(df=batterypower_df, soc_max=soc_max, soc_min=soc_min, zeit=zeit,
-				                                            speichergroessen=speichergroessen, soc_start=soc_start)
+				batterypower_df, df_day = cal_grid_friendly(df=batterypower_df, soc_max=soc_max, soc_min=soc_min,
+				                                            zeit=zeit,
+				                                            speichergroessen=speichergroessen, soc_start=soc_start
+				                                            )
 
 				print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
 				batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')

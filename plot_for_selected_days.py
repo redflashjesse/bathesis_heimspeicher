@@ -5,7 +5,7 @@ from plot_trend_of_power import plot_power
 from plot_histogram import plot_histogram
 
 
-def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot):
+def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot, filename=None):
 	"""
 		Auswahl bestimmter Tag aus dem Jahresdatensatz, Auswahl erste Möglichkeit einzelne Tage auszuwählen
 		zum Beisspiel zwei Tage im Monat, Daten für die NetzLeistung und PVleistung werden in
@@ -19,15 +19,17 @@ def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot):
 
 	if use_data_for_plot:
 		print(f'--- use pickle for data ---')
-		batterypower_df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+		df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
 
 		print(f'--- Plot: Leistungsverlauf ---')
-		print(batterypower_df.keys())
+		print(df.keys())
 
 	if not use_data_for_plot:
-		raise NotImplementedError()
-		# TODO
-		pass
+		if filename:
+			try:
+				df = pd.read_pickle(filename)
+			except Exception as e:
+				print('Es hat was mit dem Daten aus Pickle auslesen nicht geklappt', e)
 
 	for day in list_of_days:
 
@@ -35,12 +37,13 @@ def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot):
 		endday = startday + 1
 
 		for size in speichergroessen:
-			plot_power(df=batterypower_df,
+			plot_power(df=df,
 			           startday=startday,
 			           endday=endday,
 			           size=size
 			           )
-			plot_histogram(df=batterypower_df,
+
+			plot_histogram(df=df,
 			               startday=startday,
 			               endday=endday,
 			               size=size
