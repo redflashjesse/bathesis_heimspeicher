@@ -20,8 +20,16 @@ def cal_battery_own_consumption(netz_pv, soc_max,
 		Parameter und Daten zu einem Speicher sind hier hinterlegt.
 		Dieser kann durch die Speichergroesse angepasst werden.
 		Dies ist die Grundlage für eine Berechnung der möglichen Emissionen, bei gleicher Leistung.
-		 :rtype: Dataframe
-		 :param: Dataframe
+		 :param netz_pv:
+		 :param soc_max:
+		 :param soc_min:
+		 :param zeit:
+		 :param speichergroessen:
+		 :param c_out:
+		 :param c_in:
+		 :param min_flow_threshold:
+		 :param eta:
+		 :param soc_start:
 		 :return: Dataframe
 		 """
 

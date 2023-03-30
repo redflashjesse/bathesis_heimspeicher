@@ -29,6 +29,7 @@ plt.rcParams["figure.figsize"] = (15, 10)
 orginal_read = False
 use_data_for_plot = True  # or pickle
 plot_by_days = False
+set_pickle_by_orginal = True # True= read all csv data or False = read pickle for data
 speichergroessen = [12_000]
 # list(range(500,  # start
 #      10_000 + 1,  # end
@@ -40,7 +41,7 @@ soc_start = None  # input as float between 0.1,0,9; default = 0.45
 startday = 150
 endday = startday + 1
 daysteps = 15
-
+filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
 
 def main():
 	"""
@@ -51,36 +52,45 @@ def main():
 
 	# Hauptfunktion, die alle Funktionen aufruft
 
-	# Alle Funktionen ausführen
-	data = read_in_all_data()
-	own_consumption = cal_battery_own_consumption(netz_pv=data,
-	                                              speichergroessen=speichergroessen,
-	                                              eta=eta,
-	                                              soc_max=soc_max,
-	                                              soc_min=soc_min,
-	                                              zeit=zeit,
-	                                              soc_start=soc_start,
-	                                              c_out=c_out,
-	                                              c_in=c_in,
-	                                              min_flow_threshold=min_flow_threshold
-	                                              )
+	if set_pickle_by_orginal:
+		# Alle Funktionen ausführen
+		data = read_in_all_data()
+		print(f"--- Simulation Batterie nach Eigenverbrauch ---")
+		own_consumption = cal_battery_own_consumption(netz_pv=data,
+													  speichergroessen=speichergroessen,
+													  eta=eta,
+													  soc_max=soc_max,
+													  soc_min=soc_min,
+													  zeit=zeit,
+													  soc_start=soc_start,
+													  c_out=c_out,
+													  c_in=c_in,
+													  min_flow_threshold=min_flow_threshold
+													  )
+		print(f'--- Save Optimized Eigenverbrauchsopimiert als pickle ---')
+		filename = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
+		own_consumption.to_pickle(filename)
+		print(f"--- Simulation Batterie nach netzdienlich ---")
+		grid_friendly = cal_grid_friendly(df=own_consumption,
+										  speichergroessen=speichergroessen,
+										  eta=eta,
+										  soc_max=soc_max,
+										  soc_min=soc_min,
+										  zeit=zeit,
+										  soc_start=soc_start,
+										  c_out=c_out,
+										  c_in=c_in,
+										  min_flow_threshold=min_flow_threshold
+										  )
 
-	grid_friendly = cal_grid_friendly(df=data,
-	                                  speichergroessen=speichergroessen,
-	                                  eta=eta,
-	                                  soc_max=soc_max,
-	                                  soc_min=soc_min,
-	                                  zeit=zeit,
-	                                  soc_start=soc_start,
-	                                  c_out=c_out,
-	                                  c_in=c_in,
-	                                  min_flow_threshold=min_flow_threshold
-	                                  )
+		print(f'--- Save Optimized Netzdienlich als pickle ---')
+		filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
+		grid_friendly.to_pickle(filename)
+	else:
+		filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
+		grid_friendly = pd.read_pickle(filename)
 
-	print(f'--- Save Optimized Netzdienlich als pickle ---')
-	filename = f'documents/speichersimulation_optimiert_netzdienlich.pkl'
-	grid_friendly.to_pickle(filename)
-
+	print(f'--- Start plots ---')
 	plot_for_selected_days(daystep=daysteps,
 	                       speichergroessen=speichergroessen,
 	                       df=grid_friendly,
@@ -88,59 +98,24 @@ def main():
 	                       filename=filename
 	                       )
 
-	plot_histogram(grid_friendly, own_consumption)
-	plot_power(grid_friendly)
+	plot_histogram(df=grid_friendly, startday=startday, endday=endday, daysteps=daysteps, size=speichergroessen)
+	plot_power(df=grid_friendly)
 
-	# print(len(base_data))
-	if plot_by_days:
-		plot_for_selected_days(daystep=daysteps,
-		                       speichergroessen=speichergroessen,
-		                       df=grid_friendly,
-		                       use_data_for_plot=use_data_for_plot
-		                       )
-	else:
-		if use_data_for_plot:
-			for size in speichergroessen:
-				print(f"--- Simulation Batterie nach Eigenverbrauch mit {size} Wh---")
-				batterypower_df, p_max_in, p_max_out, p_min_in, p_min_out = cal_battery_own_consumption(
-						netz_pv=grid_friendly,
-						soc_start=soc_start,
-						speichergroesse=size
-				)
-
-				print(f'--- Save Netz PV Speicher Eigenverbrauch als pickle ---')
-				batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_eigenverbrauch.pkl')
-				batterypower_df.to_csv(f'documents/netz_pv_mit_speichersimulation_eigeverbrauch.csv')
-
-				print(f"--- Simulation Batterie nach netzdienlich mit {size} Wh---")
-
-				batterypower_df, df_day = cal_grid_friendly(df=batterypower_df, soc_max=soc_max, soc_min=soc_min,
-				                                            zeit=zeit,
-				                                            speichergroessen=speichergroessen, soc_start=soc_start
-				                                            )
-
-				print(f'--- Save Netz PV Speicher netzdienlich als pickle ---')
-				batterypower_df.to_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
-		else:
-			print(f'--- use pickle for data ---')
-			batterypower_df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
-
-		print(f'--- Plot: Leistungsverlauf ---')
-		# print(batterypower_df.keys())
-		# for day in selection_days_start:
-		#   startday = day
-		for size in speichergroessen:
-			plot_power(df=df_day,
-			           startday=0,
-			           endday=1,
-			           size=size
-			           )
-			plot_histogram(df=df_day,
-			               startday=0,
-			               endday=1,
-			               size=size
-			               )
-
+	"""print(f'--- Plot: Leistungsverlauf ---')
+	# print(batterypower_df.keys())
+	# for day in selection_days_start:
+	#   startday = day
+	for size in speichergroessen:
+		plot_power(df=grid_friendly,
+				   startday=0,
+				   endday=1,
+				   size=size
+				   )
+		plot_histogram(df=grid_friendly,
+					   startday=0,
+					   endday=1,
+					   size=size
+					   )"""
 
 # Makes the method main
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from plot_trend_of_power import plot_power
 from plot_histogram import plot_histogram
 
 
-def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot, filename=None):
+def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot, filename):
 	"""
 		Auswahl bestimmter Tag aus dem Jahresdatensatz, Auswahl erste Möglichkeit einzelne Tage auszuwählen
 		zum Beisspiel zwei Tage im Monat, Daten für die NetzLeistung und PVleistung werden in
@@ -19,7 +19,7 @@ def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot, fil
 
 	if use_data_for_plot:
 		print(f'--- use pickle for data ---')
-		df = pd.read_pickle(f'documents/netz_pv_mit_speichersimulation_netzdienlich.pkl')
+		df = pd.read_pickle(filename) # (f'documents/speichersimulation_optimiert_netzdienlich.pkl')
 
 		print(f'--- Plot: Leistungsverlauf ---')
 		print(df.keys())
