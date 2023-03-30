@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 
+
 # starts of plots
 def plot_power(df, startday, endday, size):
 	assert startday < endday

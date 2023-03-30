@@ -2,14 +2,13 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
+# Importieren aller benötigten Funktionen aus den Dateien
 from gridfriendly import cal_grid_friendly
 from own_consumption import cal_battery_own_consumption
 from plot_for_selected_days import plot_for_selected_days
 from plot_histogram import plot_histogram
 from plot_trend_of_power import plot_power
 from read_in_all_data import read_in_all_data
-
-# Importieren aller benötigten Funktionen aus den Dateien
 
 # Global Battery Params
 eta = 0.9  # Efficiency factor
@@ -29,7 +28,7 @@ plt.rcParams["figure.figsize"] = (15, 10)
 orginal_read = False
 use_data_for_plot = True  # or pickle
 plot_by_days = False
-set_pickle_by_orginal = True # True= read all csv data or False = read pickle for data
+set_pickle_by_orginal = False  # True= read all csv data or False = read pickle for data
 speichergroessen = [12_000]
 # list(range(500,  # start
 #      10_000 + 1,  # end
@@ -42,6 +41,7 @@ startday = 150
 endday = startday + 1
 daysteps = 15
 filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
+
 
 def main():
 	"""
@@ -57,51 +57,50 @@ def main():
 		data = read_in_all_data()
 		print(f"--- Simulation Batterie nach Eigenverbrauch ---")
 		own_consumption = cal_battery_own_consumption(netz_pv=data,
-													  speichergroessen=speichergroessen,
-													  eta=eta,
-													  soc_max=soc_max,
-													  soc_min=soc_min,
-													  zeit=zeit,
-													  soc_start=soc_start,
-													  c_out=c_out,
-													  c_in=c_in,
-													  min_flow_threshold=min_flow_threshold
-													  )
+		                                              speichergroessen=speichergroessen,
+		                                              eta=eta,
+		                                              soc_max=soc_max,
+		                                              soc_min=soc_min,
+		                                              zeit=zeit,
+		                                              soc_start=soc_start,
+		                                              c_out=c_out,
+		                                              c_in=c_in,
+		                                              min_flow_threshold=min_flow_threshold
+		                                              )
 		print(f'--- Save Optimized Eigenverbrauchsopimiert als pickle ---')
-		filename = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
-		own_consumption.to_pickle(filename)
+		pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
+		own_consumption.to_pickle(pkl_filename)
 		print(f"--- Simulation Batterie nach netzdienlich ---")
 		grid_friendly = cal_grid_friendly(df=own_consumption,
-										  speichergroessen=speichergroessen,
-										  eta=eta,
-										  soc_max=soc_max,
-										  soc_min=soc_min,
-										  zeit=zeit,
-										  soc_start=soc_start,
-										  c_out=c_out,
-										  c_in=c_in,
-										  min_flow_threshold=min_flow_threshold
-										  )
+		                                  speichergroessen=speichergroessen,
+		                                  eta=eta,
+		                                  soc_max=soc_max,
+		                                  soc_min=soc_min,
+		                                  zeit=zeit,
+		                                  soc_start=soc_start,
+		                                  c_out=c_out,
+		                                  c_in=c_in,
+		                                  min_flow_threshold=min_flow_threshold
+		                                  )
 
 		print(f'--- Save Optimized Netzdienlich als pickle ---')
-		filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
-		grid_friendly.to_pickle(filename)
+		pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
+		grid_friendly.to_pickle(pkl_filename)
 	else:
-		filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
-		grid_friendly = pd.read_pickle(filename)
+		pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
+		grid_friendly = pd.read_pickle(pkl_filename)
 
 	print(f'--- Start plots ---')
 	plot_for_selected_days(daystep=daysteps,
 	                       speichergroessen=speichergroessen,
 	                       df=grid_friendly,
 	                       use_data_for_plot=use_data_for_plot,
-	                       filename=filename
+	                       filename=pkl_filename
 	                       )
 
-	plot_histogram(df=grid_friendly, startday=startday, endday=endday, daysteps=daysteps, size=speichergroessen)
-	plot_power(df=grid_friendly)
 
-	"""print(f'--- Plot: Leistungsverlauf ---')
+	"""
+	print(f'--- Plot: Leistungsverlauf ---')
 	# print(batterypower_df.keys())
 	# for day in selection_days_start:
 	#   startday = day
@@ -115,7 +114,9 @@ def main():
 					   startday=0,
 					   endday=1,
 					   size=size
-					   )"""
+					   )
+	"""
+
 
 # Makes the method main
 if __name__ == "__main__":

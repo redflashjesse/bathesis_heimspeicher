@@ -1,10 +1,10 @@
 # Imports
 from datetime import timedelta
-
 import numpy as np
 
 
-def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, c_in, min_flow_threshold,
+def cal_grid_friendly(df, soc_max, soc_min, zeit,
+                      speichergroessen, eta, c_out, c_in, min_flow_threshold,
                       soc_start=None
                       ):
 	"""
@@ -12,6 +12,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
  (speichergrößen abhänig) p_delta, soc_delta,
  current_soc (Betrachtung zu Beginn der Minute),
  p_netzeinspeisung, p_netzbezug
+		:param min_flow_threshold:
 		:param c_in: battery parameter
 		:param c_out: battery parameter
 		:param eta: efficient
@@ -87,7 +88,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 					p_ist = min(p_max_out, max(p_min_out, p_soll * (1 + (1 - eta))))
 					soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
 					soc_akt = max(soc_min, soc_ist - soc_delta) if soc_akt < soc_min else soc_ist - soc_delta
-					if soc_akt < soc_min: # case battery has reached the lower limit
+					if soc_akt < soc_min:  # case battery has reached the lower limit
 						soc_akt = soc_ist
 						p_ist = 0
 						soc_delta = 0
@@ -102,13 +103,13 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 					p_ist = -min(p_max_in, max(p_min_in, p_supply))
 					soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
 					soc_akt = min(soc_max, soc_ist - soc_delta) if soc_akt > soc_max else soc_ist + soc_delta
-					if soc_akt > soc_max: # case battery has reached the upper limit
+					if soc_akt > soc_max:  # case battery has reached the upper limit
 						soc_reached_limit = True
 						soc_akt = soc_ist
 						p_ist = 0
 						p_delta = 0
 
-					'''if soc_akt < soc_min:  # todo prüfen ob die bedinnung stimmt
+					'''if soc_akt < soc_min:  # todo prüfen ob die Bedingung stimmt
 						soc_akt = soc_ist
 						p_ist = 0
 						soc_delta = 0'''
@@ -142,7 +143,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 			if not soc_reached_limit:
 				df.loc[(df.index.date >= day)
 				       & (df.index.date < following_day)] = df_day
-				#print(f'No optimization needed in {day}')
+			# print(f'No optimization needed in {day}')
 
 			else:  # case reached soc limit
 				if day == first_day:
@@ -156,8 +157,8 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 					print(f'Optimization needed in {day}')
 					first_minute_of_day = df_day.first_valid_index()
 					minute_before = first_minute_of_day - timedelta(minutes=1)
-					#print(f'{first_minute_of_day=}')
-					#print(f'{minute_before=}')
+					# print(f'{first_minute_of_day=}')
+					# print(f'{minute_before=}')
 					soc_akt = df.loc[minute_before, f'current_soc_{speichergroesse}Wh_netzdienlich']
 				# Find index of first non-zero value in 'Netzeinspeisung'
 				index_first_non_zero = df_day[df_day[f'GridPowerOut'] > 0].index[0]
@@ -168,7 +169,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit, speichergroessen, eta, c_out, 
 				# Calculate number of steps to get from 'current_soc' to 'soc_max'
 				optimization_steps_estimate = int(round((soc_max - current_soc) / soc_delta_max))
 
-				#print(f'{optimization_steps_estimate=}')
+				# print(f'{optimization_steps_estimate=}')
 
 				# Index der x höchsten Werte finden
 				optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()
@@ -266,8 +267,6 @@ discharging is possible any time if the soc above soc_min
 			df_day.at[index, f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] = p_netzeinspeisung_opt
 			df_day.at[index, f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] = p_netzleistung_opt
 			df_day.at[index, f'p_delta_{speichergroesse}Wh_netzdienlich'] = p_ist
-
 	# endfor
-	#print(f'finished optimizing {day}')
-
+	# print(f'finished optimizing {day}')
 	return df_day
