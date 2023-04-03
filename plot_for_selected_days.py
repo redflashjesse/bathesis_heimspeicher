@@ -7,12 +7,26 @@ from plot_histogram import plot_histogram
 
 def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot, filename):
 	"""
-		Auswahl bestimmter Tag aus dem Jahresdatensatz, Auswahl erste Möglichkeit einzelne Tage auszuwählen
-		zum Beisspiel zwei Tage im Monat, Daten für die NetzLeistung und PVleistung werden in
-		geleichen Tagen ausgeswählt
+The function plot_for_selected_days is used to select specific days from a yearly dataset
+and plot the power values for the selected days. The function expects a large dataframe (df)
+containing the data for the entire year, an integer value daystep indicating the interval
+between selected days, a list of speichergroessen (storage sizes) for which to plot the power values,
+a boolean value use_data_for_plot indicating whether to use pre-processed data or not, and a filename
+to read the input data from.
+
+If use_data_for_plot is True, the function reads the pre-processed data from the specified file
+and prints the keys of the dataframe. If it is False, the function attempts to read
+the input data from the specified file. For each day in the list of days, the function calls
+the plot_power function and plot_histogram function to generate power plots for the specified storage sizes.
+
+The function does not return anything, but generates and saves plot images for each selected day
+and storage size combination.
+		 :param daystep: is a value of the distanz of which days are choosed for plotting
+		 :param speichergroessen: a list which size the battery could be
+		 :param use_data_for_plot: If use_data_for_plot is True, the function reads the pre-processed data from the specified file
+				and prints the keys of the dataframe.
+		 :param filename: location where the pickle is found
 		 :type df: expects a large df with the whole year
-		 :rtype: object
-		 :param: Name of the file that serves as input. Format : .csv
 		 :return: list of filename
 		"""
 	list_of_days = list(range(1, 365, daystep))

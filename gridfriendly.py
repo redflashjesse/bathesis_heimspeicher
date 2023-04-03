@@ -82,47 +82,55 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
 				soc_ist = soc_akt
 
 				# Show network interface whether import or withdrawal takes place
-				p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])  # Bezug - Einspeisung
+				# Calculate target power
+				p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])
 
-				if p_soll > 0:  # Discharging battery # TODO check soc abgleich
-					p_ist = min(p_max_out, max(p_min_out, p_soll * (1 + (1 - eta))))
-					soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
-					soc_akt = max(soc_min, soc_ist - soc_delta) if soc_akt < soc_min else soc_ist - soc_delta
-					if soc_akt < soc_min:  # case battery has reached the lower limit
-						soc_akt = soc_ist
-						p_ist = 0
-						soc_delta = 0
+				# Discharging the battery
+				if p_soll > 0:
+					p_ist = min(p_max_out, p_soll)  # Threshold for upper bound
 
-					'''if soc_akt > soc_max:  # todo prüfen ob die bedinnung stimmt
-						soc_reached_limit = True
-						soc_akt = soc_ist
+					if p_ist >= p_min_out:  # Threshold for lower bound
+						soc_delta = ((p_ist * (1 + (1 - eta))) / (speichergroesse / 100)) / 100
+						soc_akt = soc_ist - soc_delta
+					else:
 						p_ist = 0
-						soc_delta = 0'''
-				else:  # charging the battery
-					p_supply = abs(p_soll)
-					p_ist = -min(p_max_in, max(p_min_in, p_supply))
-					soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
-					soc_akt = min(soc_max, soc_ist - soc_delta) if soc_akt > soc_max else soc_ist + soc_delta
-					if soc_akt > soc_max:  # case battery has reached the upper limit
-						soc_reached_limit = True
-						soc_akt = soc_ist
-						p_ist = 0
-						p_delta = 0
+						soc_akt = 0
 
-					'''if soc_akt < soc_min:  # todo prüfen ob die Bedingung stimmt
-						soc_akt = soc_ist
-						p_ist = 0
-						soc_delta = 0'''
+					# Capacity check, prevent depletion
+					if soc_akt < soc_min:
+						soc_akt, p_ist, soc_delta = soc_ist, 0, 0
 
-				if p_ist > 0:
+					# calculation of the grid power by intergration of a battery
 					p_netzbezug = row['GridPowerIn'] - max(p_ist, 0)
 					p_netzeinspeisung = 0
-				elif p_ist < 0:
+
+				# Charging the battery
+				elif p_soll < 0:
+					p_supply = abs(p_soll)
+					p_ist = min(p_max_in, p_supply)
+
+					if p_ist >= p_min_in:
+						p_ist = -p_ist  # invert value to reflect incoming p
+						soc_delta = ((p_ist * eta) / (speichergroesse / 100)) / 100
+						soc_akt = soc_ist - soc_delta
+					else:
+						p_ist = 0
+						soc_akt = soc_ist
+
+					# Capacity check, prevent overcharge
+					if soc_akt > soc_max:
+						soc_akt, p_ist, soc_delta, soc_reached_limit = soc_ist, 0, 0, True
+
+					# calculation of the grid power by intergration of a battery
 					p_netzeinspeisung = row['GridPowerOut'] + min(p_ist, 0)
 					p_netzbezug = 0
-				else:  # p_ist==0:
-					p_netzbezug = row['GridPowerIn']
-					p_netzeinspeisung = row['GridPowerOut']
+
+				# No power exchange # p_soll==0:
+				else:
+					p_netzbezug, p_netzeinspeisung = row['GridPowerIn'], row['GridPowerOut']
+					soc_akt, p_ist, soc_delta = soc_ist, 0, 0
+
+
 
 				p_netz = p_netzbezug - p_netzeinspeisung
 
@@ -141,18 +149,19 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
 			df_day[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] = netzleistung
 
 			if not soc_reached_limit:
+				#save df_day in df
 				df.loc[(df.index.date >= day)
 				       & (df.index.date < following_day)] = df_day
 			# print(f'No optimization needed in {day}')
 
 			else:  # case reached soc limit
+				# check if the first day needs optimization
 				if day == first_day:
 					print('reached Battery Max on first day')
 					if soc_start:
 						soc_akt = soc_start  # This represents an opportunity to specify a defined state of charge.
 					else:
 						soc_akt = soc_max / 2  # assumption: 45% charged at startup
-
 				else:
 					print(f'Optimization needed in {day}')
 					first_minute_of_day = df_day.first_valid_index()
@@ -160,8 +169,9 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
 					# print(f'{first_minute_of_day=}')
 					# print(f'{minute_before=}')
 					soc_akt = df.loc[minute_before, f'current_soc_{speichergroesse}Wh_netzdienlich']
+
 				# Find index of first non-zero value in 'Netzeinspeisung'
-				index_first_non_zero = df_day[df_day[f'GridPowerOut'] > 0].index[0]
+				index_first_non_zero = df_day[df_day[f'GridPowerOut'] > p_min_in].index[0]
 
 				# Find corresponding value of 'current_soc'
 				current_soc = df_day.loc[index_first_non_zero, f'current_soc_{speichergroesse}Wh_netzdienlich']
@@ -246,6 +256,7 @@ discharging is possible any time if the soc above soc_min
 					soc_delta = ((p_ist * (eta)) / (speichergroesse / 100)) / 100
 					soc_ist = soc_akt + soc_delta
 					p_ist = - p_ist
+
 			# TODO
 
 			if p_ist > 0:

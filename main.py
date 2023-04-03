@@ -28,7 +28,7 @@ plt.rcParams["figure.figsize"] = (15, 10)
 orginal_read = False
 use_data_for_plot = True  # or pickle
 plot_by_days = False
-set_pickle_by_orginal = False  # True= read all csv data or False = read pickle for data
+set_pickle_by_orginal = False # True= read all csv data or False = read pickle for data
 speichergroessen = [12_000]
 # list(range(500,  # start
 #      10_000 + 1,  # end
@@ -86,6 +86,8 @@ def main():
 		print(f'--- Save Optimized Netzdienlich als pickle ---')
 		pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
 		grid_friendly.to_pickle(pkl_filename)
+		grid_friendly.to_csv(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.csv')
+
 	else:
 		pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
 		grid_friendly = pd.read_pickle(pkl_filename)
