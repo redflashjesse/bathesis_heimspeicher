@@ -77,7 +77,7 @@ def cal_battery_own_consumption(netz_pv, soc_max,
 			# Show network interface whether import or withdrawal takes place
 			p_soll = float(row['GridPowerIn']) - float(row['GridPowerOut'])
 
-			if p_soll > 0:  # check for positive
+			if p_soll > 0:  # check for positive (Netzbezug)
 				# p_supply = p_soll * (1 + (1 - eta))  # factor in losses
 				p_ist = min(p_max_out, p_soll)  # Threshold for upper bound
 
@@ -86,7 +86,8 @@ def cal_battery_own_consumption(netz_pv, soc_max,
 					soc_akt = soc_ist - soc_delta
 				else:
 					p_ist = 0
-					soc_akt = 0
+					soc_delta = 0
+					soc_akt = soc_ist
 
 				# Capacity check, prevent depletion
 				if soc_akt < soc_min:
@@ -105,6 +106,7 @@ def cal_battery_own_consumption(netz_pv, soc_max,
 					soc_akt = soc_ist - soc_delta
 				else:
 					p_ist = 0
+					soc_delta = 0
 					soc_akt = soc_ist
 
 				# Capacity check, prevent overcharge

@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-def plot_histogram(df, startday, endday, size, binsize=100):
+def plot_histogram(df, startday, endday, size, binsize=25):
 	"""
 It first defines the start and end dates for the data to be plotted, and sets the plotting style
 to "fivethirtyeight". It then reads in the power consumption data for a grid connection,
@@ -62,45 +62,23 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 
 	# calculates the total number of power bins to be used in the histogram
 	bins = bins_in + bins_out
-	#bins = 25
+	#bins = 50
 
-	bar_width = 1 / 3  # set the width of each bar
+	bar_width = 10  # set the width of each bar
 
-	# The next three lines create histograms for each power scenario and plot them on the same graph.
-	plt.hist([Leistung_pure],
-			 bins=bins,
-			 color=['green'],
-			 density=density,
-			 edgecolor='black',
-			 label='ohne Speicher',
-			 alpha=0.2,
-			 zorder=2,
-			 width=bar_width-1
-			 )
+	# Make a multiple-histogram of data-sets with different length.
+	x_multi = [Leistung_pure,Leistung_eigenverbrauch,Leistung_netz]
+	colors = ['green','blue','orange']
+	labels = ['ohne Speicher','Speicher eigenverbrauch', 'Soeicher netzdiehnlich']
+	ax.hist(x_multi, bins,
+			histtype='stepfilled',
+			color=colors,
+			label=labels,
+			#width=bar_width,
+			density=density,
+			alpha=0.3)
 
-	plt.hist([Leistung_eigenverbrauch],
-			 bins=bins,
-			 color=['blue'],
-			 density=density,
-			 edgecolor='black',
-			 label='Speicher eigenverbrauch',
-			 alpha=0.3,
-			 zorder=2,
-			 width=bar_width
-			 )
-
-	plt.hist([Leistung_netz],
-			 bins=bins,
-			 color=['orange'],
-			 density=density,
-			 edgecolor='black',
-			 label='Speicher netzdienlich',
-			 alpha=0.5,
-			 zorder=2,
-			 width=bar_width+1
-			 )  # , log=True, linewidth=1)
-
-	plt.axvline(0, color='red')  # creates a vertical line at the zero power point
+	plt.axvline(0, color='red', label='Nulllinie')  # creates a vertical line at the zero power point
 	plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
 	# he next three lines create histograms for each power scenario and plot them on the same graph.
 
@@ -123,5 +101,41 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 
 
 """
-	
+		# The next three lines create histograms for each power scenario and plot them on the same graph.
+	plt.hist([Leistung_pure],
+			 bins=bins,
+			 color=['green'],
+			 density=density,
+			 edgecolor='black',
+			 label='ohne Speicher',
+			 alpha=0.2,
+			 zorder=2,
+			 histtype='bar',
+			 width=bar_width
+			 )
+
+	plt.hist([Leistung_eigenverbrauch],
+			 bins=bins,
+			 color=['blue'],
+			 density=density,
+			 edgecolor='black',
+			 label='Speicher eigenverbrauch',
+			 alpha=0.3,
+			 zorder=2,
+			 histtype='bar',
+			 width=bar_width
+			 )
+
+	plt.hist([Leistung_netz],
+			 bins=bins,
+			 color=['orange'],
+			 density=density,
+			 edgecolor='black',
+			 label='Speicher netzdienlich',
+			 alpha=0.5,
+			 zorder=2,
+			 histtype='bar',
+			 width=bar_width
+			 )  # , log=True, linewidth=1)
+
 	         """

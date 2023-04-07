@@ -24,6 +24,7 @@ The axis labels and the plot title are automatically generated.
 	:param endday: number one higher then the startday
 	:param size: batterysize in Wh
 	"""
+	linewidth = 1
 	assert startday < endday
 	date = df.index[startday * 1440 + 200]
 	date = date.strftime('%Y-%m-%d')
@@ -34,15 +35,35 @@ The axis labels and the plot title are automatically generated.
 	netzbezug_pure = df[f'GridPowerIn'][startday * 1440:endday * 1440]
 	einspeisung_pure = df[f'GridPowerOut'][startday * 1440:endday * 1440]
 	einspeisung_pure = einspeisung_pure.mul(-1)
-	ax1.plot(netzbezug_pure, label='Netzbezug ohne Speicher', color='limegreen', alpha=0.4, zorder=3)
-	ax1.plot(einspeisung_pure, label='Einspeisung ohne Speicher', color='seagreen', alpha=0.3, zorder=3)
+	ax1.plot(netzbezug_pure,
+			 label='Netzbezug ohne Speicher',
+			 color='limegreen',
+			 alpha=0.4,
+			 linewidth=linewidth,
+			 zorder=3)
+	ax1.plot(einspeisung_pure,
+			 label='Einspeisung ohne Speicher',
+			 color='seagreen',
+			 alpha=0.3,
+			 linewidth=linewidth,
+			 zorder=3)
 
 	# Power profile with a storage, runs after own consumtion
 	netzbezug_eigen = df[f'p_netzbezug_{size}Wh_eigenverbrauch'][startday * 1440:endday * 1440]
 	einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_eigenverbrauch'][startday * 1440:endday * 1440]
 	einspeisung_eigen = einspeisung_eigen.mul(-1)
-	ax1.plot(netzbezug_eigen, label='Netzbezug Eigenverbrauch', color='mediumblue', alpha=0.4, zorder=2)
-	ax1.plot(einspeisung_eigen, label='Einspeisung Eigenverbrauch', color='cornflowerblue', alpha=0.4, zorder=2)
+	ax1.plot(netzbezug_eigen,
+			 label='Netzbezug Eigenverbrauch',
+			 color='mediumblue',
+			 alpha=0.4,
+			 linewidth=linewidth,
+			 zorder=2)
+	ax1.plot(einspeisung_eigen,
+			 label='Einspeisung Eigenverbrauch',
+			 color='cornflowerblue',
+			 alpha=0.4,
+			 linewidth=linewidth,
+			 zorder=2)
 
 	# Power profile with a storage, runs after grid friendly
 	netzbezug_netzdienlich = df[f'p_netzbezug_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
@@ -50,8 +71,18 @@ The axis labels and the plot title are automatically generated.
 	einspeisung_netzdienlich = einspeisung_netzdienlich.mul(-1)
 	# Ladeleistung = df[f'p_ladeleistung_{size}Wh_netzdienlich'][startday * 1440:endday * 1440]
 
-	ax1.plot(netzbezug_netzdienlich, label='Netzbezug netzdienlich', color='orangered', alpha=0.4, zorder=1)
-	ax1.plot(einspeisung_netzdienlich, label='Einspeisung netzdienlich', color='tomato', alpha=0.4, zorder=1)
+	ax1.plot(netzbezug_netzdienlich,
+			 label='Netzbezug netzdienlich',
+			 color='orangered',
+			 alpha=0.4,
+			 linewidth=linewidth,
+			 zorder=1)
+	ax1.plot(einspeisung_netzdienlich,
+			 label='Einspeisung netzdienlich',
+			 color='tomato',
+			 alpha=0.4,
+			 linewidth=linewidth,
+			 zorder=1)
 	# plt.fill_between(Ladeleistung, y2= 0, label='Ladeleistung des Speichers', alpha=0.4, zorder=3)
 
 	# Add SOC data on the secondary y-axis
@@ -59,11 +90,11 @@ The axis labels and the plot title are automatically generated.
 	ax2.plot(df[f'current_soc_{size}Wh_eigenverbrauch'][startday * 1440:endday * 1440],
 			 color='blue',
 			 label='SOC eigenverbrauch',
-			 alpha=1, linewidth=0.5)
+			 alpha=1, linewidth=linewidth)
 	ax2.plot(df[f'current_soc_{size}Wh_netzdienlich'][startday * 1440:endday * 1440],
 			 color='orange',
 			 label='SOC netzdienlich',
-			 alpha=1, linewidth=0.5)  # SOC plot
+			 alpha=1, linewidth=linewidth)  # SOC plot
 	ax2.set_ylabel('SOC in %')
 	ax2.set_ylim([0, 1])
 	ax2.grid(True)

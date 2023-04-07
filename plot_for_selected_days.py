@@ -36,7 +36,7 @@ and storage size combination.
 		df = pd.read_pickle(filename) # (f'documents/speichersimulation_optimiert_netzdienlich.pkl')
 
 		print(f'--- Plot: Leistungsverlauf ---')
-		print(df.keys())
+
 
 	if not use_data_for_plot:
 		if filename:
