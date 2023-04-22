@@ -1,6 +1,7 @@
 # Imports
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_histogram(df, startday, endday, size, binsize=25):
@@ -61,7 +62,7 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 	bins_in = math.ceil(max_in / binsize)
 
 	# calculates the total number of power bins to be used in the histogram
-	bins = bins_in + bins_out
+	num_bin = bins_in + bins_out
 	#bins = 50
 
 	bar_width = 10  # set the width of each bar
@@ -70,15 +71,16 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 	x_multi = [Leistung_pure,Leistung_eigenverbrauch,Leistung_netz]
 	colors = ['green','blue','orange']
 	labels = ['ohne Speicher','Speicher eigenverbrauch', 'Soeicher netzdiehnlich']
-	ax.hist(x_multi, bins,
+	#n, bins, patches =\
+	ax.hist(x_multi, num_bin,
 			histtype='stepfilled',
 			color=colors,
 			label=labels,
 			#width=bar_width,
 			density=density,
-			alpha=0.3)
+			alpha=0.1)
 
-	plt.axvline(0, color='red', label='Nulllinie')  # creates a vertical line at the zero power point
+	#plt.axvline(0, color='red', alpha=0.2, label='Nulllinie')  # creates a vertical line at the zero power point
 	plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
 	# he next three lines create histograms for each power scenario and plot them on the same graph.
 
@@ -88,6 +90,23 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 	# Now we format the y-axis to display percentage
 	# axs[1].yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
+	"""
+	# add a diagram with 'best fit' line
+	mu = 100  # mean of distribution
+	sigma = 15  # standard deviation of distribution
+
+	y_pure = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+		 np.exp(-0.5 * (1 / sigma * (Leistung_pure - mu)) ** 2))
+	y_eigenverbauch = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+		  np.exp(-0.5 * (1 / sigma * (Leistung_eigenverbrauch - mu)) ** 2))
+	y_netz = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+		  np.exp(-0.5 * (1 / sigma * (Leistung_netz - mu)) ** 2))
+
+	y = [y_pure, y_eigenverbauch, y_netz]
+
+	#plot addional line
+	ax.plot(bins, y,'--', color=colors, density=density)
+	"""
 	# Increase tick label size
 	plt.tick_params(axis='both', labelsize=20)
 	plt.title(f'Verteilung von Leistungen am {date}')

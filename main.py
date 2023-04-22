@@ -26,7 +26,7 @@ plt.rcParams["figure.figsize"] = (15, 10)
 orginal_read = False
 use_data_for_plot = True  # or pickle
 plot_by_days = False
-set_pickle_by_orginal = False  # True= read all csv data or False = read pickle for data
+set_pickle_by_orginal = True  # True= read all csv data or False = read pickle for data
 speichergroessen = [12_000]
 # list(range(500,  # start
 #      10_000 + 1,  # end
