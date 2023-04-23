@@ -3,6 +3,7 @@ import pandas as pd
 
 from plot_trend_of_power import plot_power
 from plot_histogram import plot_histogram
+from plot_histogram import plot_histogram_sns
 
 
 def plot_for_selected_days(df, daystep, speichergroessen, use_data_for_plot, filename):
@@ -51,13 +52,13 @@ and storage size combination.
 		endday = startday + 1
 
 		for size in speichergroessen:
-			plot_power(df=df,
-			           startday=startday,
-			           endday=endday,
-			           size=size
-			           )
+			#plot_power(df=df,
+			 #          startday=startday,
+			  #         endday=endday,
+			   #        size=size
+			    #       )
 
-			plot_histogram(df=df,
+			plot_histogram_sns(df=df,
 			               startday=startday,
 			               endday=endday,
 			               size=size

@@ -1,3 +1,5 @@
+import pandas as pd
+import matplotlib.pyplot as plt
 """
 # Annahme: Daten zur Stromversorgung und -erzeugung werden als CSV-Dateien bereitgestellt
 # mit zwei Spalten "Zeitstempel" und "Wert" für Netzbezug und Netzeinspeisung
@@ -48,10 +50,6 @@ for index, row in netzbezug.iterrows():
 
 
 
-
-import pandas as pd
-import matplotlib.pyplot as plt
-
 # Parameter für die Simulation
 SPEICHER_KAPAZITAET = 10  # kWh
 MIN_KAPAZITAET = 1  # kWh
@@ -74,7 +72,6 @@ speicher_ladung_hist = []
 
 # Schleife über alle Tage im Jahr
 for tag in verbrauch.index.date.unique():
-
     # Filterung der Daten für den aktuellen Tag
     verbrauch_tag = verbrauch.loc[tag]
     pv_erzeugung_tag = pv_erzeugung.loc[tag]
@@ -103,7 +100,7 @@ plt.xlabel('Datum')
 plt.ylabel('Speicherladung (kWh)')
 plt.show()
 
-import pandas as pd
+
 
 # Laden der Daten in ein Pandas-DataFrame
 data = pd.read_csv('netzbezug_netzeinspeisung.csv')

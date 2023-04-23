@@ -6,8 +6,6 @@ import pandas as pd
 from gridfriendly import cal_grid_friendly
 from own_consumption import cal_battery_own_consumption
 from plot_for_selected_days import plot_for_selected_days
-from plot_histogram import plot_histogram
-from plot_trend_of_power import plot_power
 from read_in_all_data import read_in_all_data
 
 # Global Battery Params
@@ -26,7 +24,7 @@ plt.rcParams["figure.figsize"] = (15, 10)
 orginal_read = False
 use_data_for_plot = True  # or pickle
 plot_by_days = False
-set_pickle_by_orginal = True  # True= read all csv data or False = read pickle for data
+set_pickle_by_orginal = False  # True= read all csv data or False = read pickle for data
 speichergroessen = [12_000]
 # list(range(500,  # start
 #      10_000 + 1,  # end
@@ -37,7 +35,7 @@ soc_start = None  # input as float between 0.1,0,9; default = 0.45
 #                               20)) # step # in days for the year
 startday = 150
 endday = startday + 1
-daysteps = 15
+daysteps = 180
 filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
 
 

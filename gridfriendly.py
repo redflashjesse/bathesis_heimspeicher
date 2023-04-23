@@ -176,25 +176,29 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 # Find corresponding value of 'current_soc'
                 current_soc = df_day.loc[index_first_non_zero, f'current_soc_{speichergroesse}Wh_netzdienlich']
 
-                optimizable_indices = df_day['GridPowerOut'].nlargest().index.tolist()
+                optimizable_indices_list = df_day['GridPowerOut'].sort_values(ascending=False).index.tolist()
+                assert len(df_day['GridPowerOut']) == len(optimizable_indices_list)
+
                 optimization_steps_estimate = 0
 
-                for idx in optimizable_indices:
-                    p_supply_indices = df_day.loc[idx, 'GridPowerOut']
-                    p_ist_indices = min(p_max_in, p_supply_indices)  # Wert aus GridPowerOut begrenzt auf p_max_in
-                    if p_ist_indices >= p_min_in:
-                        soc_delta_indices = ((p_ist_indices * eta) / (speichergroesse / 100)) / 100
+                for idx in optimizable_indices_list:
+                    p_supply_index = df_day.loc[idx, 'GridPowerOut']
+                    p_ist_index = min(p_max_in, p_supply_index)  # Wert aus GridPowerOut begrenzt auf p_max_in
+
+                    if p_ist_index >= p_min_in:
+                        soc_delta_indices = ((p_ist_index * eta) / (speichergroesse / 100)) / 100
                         soc_akt_indices = current_soc + soc_delta_indices
                         current_soc = soc_akt_indices
-                        optimization_steps_estimate=+1
-
+                        optimization_steps_estimate += 1
                         if soc_akt_indices >= soc_max:
                             break  # Schleife wird beendet, sobald soc_akt >= soc_max ist
 
                 # Calculate number of steps to get from 'current_soc' to 'soc_max'
-                # optimization_steps_estimate = int(round((soc_max-soc_min)/soc_delta_max)) #int(round((soc_max - current_soc) / soc_delta_max))
+                # optimization_steps_estimate = int(round((soc_max-soc_min)/soc_delta_max))
+                # #int(round((soc_max - current_soc) / soc_delta_max))
 
-                # print(f'{optimization_steps_estimate=}')
+                assert optimization_steps_estimate <= len(df_day['GridPowerOut'])
+                assert optimization_steps_estimate >= 0
 
                 # Index der x höchsten Werte finden
                 optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()

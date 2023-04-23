@@ -1,11 +1,69 @@
 # Imports
 import math
 import matplotlib.pyplot as plt
-import numpy as np
+import seaborn as sns
+
+
+def plot_histogram_sns(df, startday, endday, size, binsize=25):
+    # set dpi globally
+
+    sns.set(rc={'figure.figsize': (15, 10)})
+    sns.set(rc={'savefig.dpi': 500})
+    sns.set(rc={'font.size': 20})
+
+
+    assert startday < endday
+    # This line sets the date to the start day of the data frame in the format of year-month-day
+    date = df.index[startday * 1440].strftime('%Y-%m-%d')
+
+    start_idx = startday * 1440
+    end_idx = endday * 1440  # These lines set the start and end indices for the data to be plotted.
+
+    netzbezug_pure = df[f'GridPowerIn'][start_idx:end_idx]
+    einspeisung_pure = df[f'GridPowerOut'][start_idx:end_idx]
+
+    netzbezug_eigen = df[f'p_netzbezug_{size}Wh_eigenverbrauch'][start_idx:end_idx]
+    einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_eigenverbrauch'][start_idx:end_idx]
+
+    netzbezug_netz = df[f'p_netzbezug_{size}Wh_netzdienlich'][start_idx:end_idx]
+    einspeisung_netz = df[f'p_netzeinspeisung_{size}Wh_netzdienlich'][start_idx:end_idx]
+
+    leistung_pure = einspeisung_pure.mul(-1) + netzbezug_pure
+    leistung_eigenverbrauch = einspeisung_eigen.mul(-1) + netzbezug_eigen
+    leistung_netz = einspeisung_netz.mul(-1) + netzbezug_netz
+
+
+    # Make a multiple-histogram of data-sets with different length.
+    x_multi = [leistung_pure, leistung_eigenverbrauch, leistung_netz]
+    colors = ['green', 'blue', 'orange']
+    labels = ['ohne Speicher', 'Speicher eigenverbrauch', 'Soeicher netzdiehnlich']
+
+    sns.set_style('whitegrid')
+    sns.displot(data=leistung_pure,
+                x=leistung_pure,
+                kde=True,
+                label='ohne Speicher',
+                legend=True,
+                rug=True,
+                element="step",
+                )
+
+
+
+    # Increase tick label size
+    plt.tick_params(axis='both', labelsize=20)
+    plt.title(f'Verteilung von Leistungen am {date}')
+    plt.xlabel('Leistung in Wh', fontsize=16)
+    plt.ylabel('Häufigkeit', fontsize=16)
+    plt.tight_layout()
+    plt.legend()
+    plt.show()
+    # Save the Plot as png
+    # fig.savefig(f'graphs/Histogramm_{date}.png')
 
 
 def plot_histogram(df, startday, endday, size, binsize=25):
-	"""
+    """
 It first defines the start and end dates for the data to be plotted, and sets the plotting style
 to "fivethirtyeight". It then reads in the power consumption data for a grid connection,
 and also for two scenarios where a storage system is used: one optimized for self-consumption,
@@ -21,140 +79,82 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 
 	:param df: dataframe which contains all data, own consumption, grid friendly and without a battery
 	:param startday: contains a number from 1 to 365, which stand for a day in a year
-	:param endday: number one higher then the startday
+	:param endday: number one higher than the startday
 	:param size: batterysize in Wh
 	:param binsize: size of value which are group together
 	"""
-	assert startday < endday
+    assert startday < endday
 
+	# This line sets the date to the start day of the data frame in the format of year-month-day
+    date = df.index[startday * 1440].strftime('%Y-%m-%d')
 
-	date = df.index[startday * 1440].strftime('%Y-%m-%d') #  This line sets the date to the start day of the data frame in the format of year-month-day
-	density = False # This line sets the density of the histogram to be false.
-	plt.style.use('fivethirtyeight')
-	start_idx = startday * 1440
-	end_idx = endday * 1440 # These lines set the start and end indices for the data to be plotted.
-	fig, ax = plt.subplots()
-	plt.rcParams.update({'font.size': 20})  # increase label size
+    density = False  # This line sets the density of the histogram to be false.
+    plt.style.use('fivethirtyeight')
+    start_idx = startday * 1440
+    end_idx = endday * 1440  # These lines set the start and end indices for the data to be plotted.
+    fig, ax = plt.subplots()
+    plt.rcParams.update({'font.size': 20})  # increase label size
 
-	# The following three blocks of code read in and store the power data for different scenarios:
-	# one without a storage system (netzbezug_pure and einspeisung_pure),
-	# one with a storage system optimized for self-consumption (netzbezug_eigen and einspeisung_eigen),
-	# and one with a storage system optimized for grid services (netzbezug_netz and einspeisung_netz).
-	netzbezug_pure = df[f'GridPowerIn'][start_idx:end_idx]
-	einspeisung_pure = df[f'GridPowerOut'][start_idx:end_idx]
+    # The following three blocks of code read in and store the power data for different scenarios:
+    # one without a storage system (netzbezug_pure and einspeisung_pure),
+    # one with a storage system optimized for self-consumption (netzbezug_eigen and einspeisung_eigen),
+    # and one with a storage system optimized for grid services (netzbezug_netz and einspeisung_netz).
+    netzbezug_pure = df[f'GridPowerIn'][start_idx:end_idx]
+    einspeisung_pure = df[f'GridPowerOut'][start_idx:end_idx]
 
-	netzbezug_eigen = df[f'p_netzbezug_{size}Wh_eigenverbrauch'][start_idx:end_idx]
-	einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_eigenverbrauch'][start_idx:end_idx]
+    netzbezug_eigen = df[f'p_netzbezug_{size}Wh_eigenverbrauch'][start_idx:end_idx]
+    einspeisung_eigen = df[f'p_netzeinspeisung_{size}Wh_eigenverbrauch'][start_idx:end_idx]
 
-	netzbezug_netz = df[f'p_netzbezug_{size}Wh_netzdienlich'][start_idx:end_idx]
-	einspeisung_netz = df[f'p_netzeinspeisung_{size}Wh_netzdienlich'][start_idx:end_idx]
+    netzbezug_netz = df[f'p_netzbezug_{size}Wh_netzdienlich'][start_idx:end_idx]
+    einspeisung_netz = df[f'p_netzeinspeisung_{size}Wh_netzdienlich'][start_idx:end_idx]
 
-	Leistung_pure = einspeisung_pure.mul(-1) + netzbezug_pure
-	Leistung_eigenverbrauch = einspeisung_eigen.mul(-1) + netzbezug_eigen
-	Leistung_netz = einspeisung_netz.mul(-1) + netzbezug_netz
+    leistung_pure = einspeisung_pure.mul(-1) + netzbezug_pure
+    leistung_eigenverbrauch = einspeisung_eigen.mul(-1) + netzbezug_eigen
+    leistung_netz = einspeisung_netz.mul(-1) + netzbezug_netz
 
-	# calculate the minimum output power and number of output power bins
-	min_out = einspeisung_pure.max()
-	bins_out = math.ceil(min_out / binsize)
+    # calculate the minimum output power and number of output power bins
+    min_out = einspeisung_pure.max()
+    bins_out = math.ceil(min_out / binsize)
 
-	# calculate the maximum input power and number of input power bins
-	max_in = netzbezug_pure.max()
-	bins_in = math.ceil(max_in / binsize)
+    # calculate the maximum input power and number of input power bins
+    max_in = netzbezug_pure.max()
+    bins_in = math.ceil(max_in / binsize)
 
-	# calculates the total number of power bins to be used in the histogram
-	num_bin = bins_in + bins_out
-	#bins = 50
+    # calculates the total number of power bins to be used in the histogram
+    num_bin = bins_in + bins_out
 
-	bar_width = 10  # set the width of each bar
+    bar_width = 10  # set the width of each bar
 
-	# Make a multiple-histogram of data-sets with different length.
-	x_multi = [Leistung_pure,Leistung_eigenverbrauch,Leistung_netz]
-	colors = ['green','blue','orange']
-	labels = ['ohne Speicher','Speicher eigenverbrauch', 'Soeicher netzdiehnlich']
-	#n, bins, patches =\
-	ax.hist(x_multi, num_bin,
-			histtype='stepfilled',
-			color=colors,
-			label=labels,
-			#width=bar_width,
-			density=density,
-			alpha=0.1)
+    # Make a multiple-histogram of data-sets with different length.
+    x_multi = [leistung_pure, leistung_eigenverbrauch, leistung_netz]
+    colors = ['green', 'blue', 'orange']
+    labels = ['ohne Speicher', 'Speicher Eigenverbrauch', 'Speicher netzdienlich']
+    # n, bins, patches =\
+    ax.hist(x_multi, num_bin,
+            histtype='stepfilled',
+            color=colors,
+            label=labels,
+            # width=bar_width,
+            density=density,
+            alpha=0.1)
 
-	#plt.axvline(0, color='red', alpha=0.2, label='Nulllinie')  # creates a vertical line at the zero power point
-	plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-	# he next three lines create histograms for each power scenario and plot them on the same graph.
+    # plt.axvline(0, color='red', alpha=0.2, label='Nulllinie')  # creates a vertical line at the zero PowerPoint
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    # he next three lines create histograms for each power scenario and plot them on the same graph.
 
-	# We can also normalize our inputs by the total number of counts
-	# axs[1].hist(dist1, bins=n_bins, density=True)
+    # We can also normalize our inputs by the total number of counts
+    # axs[1].hist(dist1, bins=n_bins, density=True)
 
-	# Now we format the y-axis to display percentage
-	# axs[1].yaxis.set_major_formatter(PercentFormatter(xmax=1))
+    # Now we format the y-axis to display percentage
+    # axs[1].yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
-	"""
-	# add a diagram with 'best fit' line
-	mu = 100  # mean of distribution
-	sigma = 15  # standard deviation of distribution
+    # Increase tick label size
+    plt.tick_params(axis='both', labelsize=20)
+    plt.title(f'Verteilung von Leistungen am {date}')
+    plt.xlabel('Leistung in Wh', fontsize=16)
+    plt.ylabel('Häufigkeit', fontsize=16)
+    plt.tight_layout()
+    plt.show()
 
-	y_pure = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-		 np.exp(-0.5 * (1 / sigma * (Leistung_pure - mu)) ** 2))
-	y_eigenverbauch = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-		  np.exp(-0.5 * (1 / sigma * (Leistung_eigenverbrauch - mu)) ** 2))
-	y_netz = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-		  np.exp(-0.5 * (1 / sigma * (Leistung_netz - mu)) ** 2))
-
-	y = [y_pure, y_eigenverbauch, y_netz]
-
-	#plot addional line
-	ax.plot(bins, y,'--', color=colors, density=density)
-	"""
-	# Increase tick label size
-	plt.tick_params(axis='both', labelsize=20)
-	plt.title(f'Verteilung von Leistungen am {date}')
-	plt.xlabel('Leistung in Wh', fontsize=16)
-	plt.ylabel('Häufigkeit', fontsize=16)
-	plt.tight_layout()
-	plt.show()
-
-	# Save the Plot as png
-	fig.savefig(f'graphs/Histogramm_{date}.png')
-
-
-"""
-		# The next three lines create histograms for each power scenario and plot them on the same graph.
-	plt.hist([Leistung_pure],
-			 bins=bins,
-			 color=['green'],
-			 density=density,
-			 edgecolor='black',
-			 label='ohne Speicher',
-			 alpha=0.2,
-			 zorder=2,
-			 histtype='bar',
-			 width=bar_width
-			 )
-
-	plt.hist([Leistung_eigenverbrauch],
-			 bins=bins,
-			 color=['blue'],
-			 density=density,
-			 edgecolor='black',
-			 label='Speicher eigenverbrauch',
-			 alpha=0.3,
-			 zorder=2,
-			 histtype='bar',
-			 width=bar_width
-			 )
-
-	plt.hist([Leistung_netz],
-			 bins=bins,
-			 color=['orange'],
-			 density=density,
-			 edgecolor='black',
-			 label='Speicher netzdienlich',
-			 alpha=0.5,
-			 zorder=2,
-			 histtype='bar',
-			 width=bar_width
-			 )  # , log=True, linewidth=1)
-
-	         """
+    # Save the Plot as png
+    fig.savefig(f'graphs/Histogramm_{date}.png')

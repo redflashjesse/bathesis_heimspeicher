@@ -1,46 +1,21 @@
-from grafanalib.core import *
-from grafanalib.datasource import Datasource
-from grafanalib.dashboard import *
-from grafanalib import _jsonnet
+# Import packages
+from dash import Dash, html, dash_table, dcc
+import pandas as pd
+import plotly.express as px
 
-def create_dashboard() -> Dashboard:
-    # Datenquelle definieren
-    datasource = Datasource(
-        name='MyDataSource', type='prometheus', url='http://localhost:9090'
-    )
+# Incorporate data
+df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
 
-    # Dashboard definieren
-    dashboard = Dashboard(
-        title='MyDashboard',
-        rows=[
-            Row(panels=[
-                Graph(
-                    title='MyGraph',
-                    dataSource=datasource.name,
-                    targets=[
-                        Target(
-                            expr='up',
-                            legendFormat='Up'
-                        )
-                    ],
-                    yAxes=[
-                        YAxis(format=OPS_FORMAT, label='Ops')
-                    ]
-                )
-            ])
-        ],
-        editable=True
-    )
+# Initialize the app
+app = Dash(__name__)
 
-    return dashboard
+# App layout
+app.layout = html.Div([
+    html.Div(children='My First App with Data and a Graph'),
+    dash_table.DataTable(data=df.to_dict('records'), page_size=10),
+    dcc.Graph(figure=px.histogram(df, x='continent', y='lifeExp', histfunc='avg'))
+])
 
-def main():
-    dashboard = create_dashboard()
-    dashboard_json = dashboard.to_json_data()
-
-    # Dashboard in Grafana erstellen
-    # Hier müssen Sie die entsprechenden API-Aufrufe verwenden, um das Dashboard in Grafana zu erstellen.
-    # Sie können auch eine Bibliothek wie "grafana-api" verwenden, um die API-Aufrufe zu vereinfachen.
-
+# Run the app
 if __name__ == '__main__':
-    main()
+    app.run_server(debug=True)
