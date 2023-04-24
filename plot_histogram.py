@@ -2,6 +2,7 @@
 import math
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 
 def plot_histogram_sns(df, startday, endday, size, binsize=25):
@@ -34,29 +35,29 @@ def plot_histogram_sns(df, startday, endday, size, binsize=25):
 
 
     # Make a multiple-histogram of data-sets with different length.
-    x_multi = [leistung_pure, leistung_eigenverbrauch, leistung_netz]
-    colors = ['green', 'blue', 'orange']
+    # x_multi = [leistung_pure, leistung_eigenverbrauch, leistung_netz]
+    # colors = ['green', 'blue', 'orange']
     labels = ['ohne Speicher', 'Speicher eigenverbrauch', 'Soeicher netzdiehnlich']
 
     sns.set_style('whitegrid')
-    sns.displot(data=leistung_pure,
-                x=leistung_pure,
+    ax = sns.displot(data=pd.DataFrame({labels[0]: leistung_pure,
+                                   labels[1]: leistung_eigenverbrauch,
+                                   labels[2]: leistung_netz}),
                 kde=True,
-                label='ohne Speicher',
-                legend=True,
                 rug=True,
+                legend=True,
                 element="step",
-                )
-
-
-
-    # Increase tick label size
+                fill=False)
+    sns.move_legend(ax, "upper right", bbox_to_anchor=(1.2, .8),  frameon=False)
+# Increase tick label size
     plt.tick_params(axis='both', labelsize=20)
     plt.title(f'Verteilung von Leistungen am {date}')
     plt.xlabel('Leistung in Wh', fontsize=16)
     plt.ylabel('Häufigkeit', fontsize=16)
     plt.tight_layout()
-    plt.legend()
+    plt.savefig(f'graphs/Histogramm_{date}.png', bbox_inches='tight')
+    # Add legend outside the plot
+    # plt.legend(loc='upper right')
     plt.show()
     # Save the Plot as png
     # fig.savefig(f'graphs/Histogramm_{date}.png')

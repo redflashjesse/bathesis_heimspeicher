@@ -18,8 +18,8 @@ c_in = 0.5  # Coulombe factor
 min_flow_threshold = 0.1  # threshold for minimal flow for action to be taken [range: 0-1] in %
 
 # set dpi globally
-plt.rcParams['savefig.dpi'] = 500
-plt.rcParams["figure.figsize"] = (15, 10)
+plt.rcParams['savefig.dpi'] = 800
+plt.rcParams["figure.figsize"] = (25, 10)
 
 orginal_read = False
 use_data_for_plot = True  # or pickle
@@ -88,6 +88,7 @@ def main():
         pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
         grid_friendly = pd.read_pickle(pkl_filename)
 
+    print(grid_friendly.columns)
     print(f'--- Start plots ---')
     plot_for_selected_days(daystep=daysteps,
                            speichergroessen=speichergroessen,
