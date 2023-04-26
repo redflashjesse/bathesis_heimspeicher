@@ -1,6 +1,7 @@
 # Imports
 from datetime import timedelta
 import numpy as np
+import pandas as pd
 
 
 def cal_grid_friendly(df, soc_max, soc_min, zeit,
@@ -62,6 +63,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
         unique_days = list(dict.fromkeys(unique_days))
         first_day = unique_days[0]
         list_of_days_optimization = []
+        df_list_opt = pd.DataFrame()
 
         for day in unique_days:
 
@@ -178,6 +180,8 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
 
                 optimizable_indices_list = df_day['GridPowerOut'].sort_values(ascending=False).index.tolist()
                 assert len(df_day['GridPowerOut']) == len(optimizable_indices_list)
+                df_list_opt[f'GridPowerOut_{day}_{speichergroesse}Wh'] = df_day['GridPowerOut']
+                df_list_opt[f'optimizable_indices_list_{day}_{speichergroesse}Wh'] = optimizable_indices_list
 
                 optimization_steps_estimate = 0
 
@@ -203,6 +207,15 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 # Index der x höchsten Werte finden
                 optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()
 
+                # Bestimme die gewünschte Länge der Spalte optimizable_indices
+                desired_length = len(GridPowerOut)
+
+                # Fülle fehlende Werte mit NaN auf
+                optimizable_indices_len = np.pad(optimizable_indices, (0, desired_length - len(optimizable_indices)),
+                                             mode='constant', constant_values=np.nan)
+
+                df_list_opt[f'optimizable_indices_{day}_{speichergroesse}Wh'] = optimizable_indices_len
+
                 # start gridfriendly
                 df_day_opt = optimize_one_day(df_day, p_max_out, p_min_out,
                                               p_max_in, p_min_in,
@@ -214,7 +227,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 df.loc[(df.index.date >= day)
                        & (df.index.date < following_day)] = df_day_opt
 
-    return df
+    return df, df_list_opt
 
 
 def optimize_one_day(df_day, p_max_out, p_min_out,

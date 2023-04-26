@@ -24,7 +24,7 @@ plt.rcParams["figure.figsize"] = (25, 10)
 orginal_read = False
 use_data_for_plot = True  # or pickle
 plot_by_days = False
-set_pickle_by_orginal = False  # True= read all csv data or False = read pickle for data
+set_pickle_by_orginal = True  # True= read all csv data or False = read pickle for data
 speichergroessen = [12_000]
 # list(range(500,  # start
 #      10_000 + 1,  # end
@@ -67,7 +67,7 @@ def main():
         pkl_filename_eigen = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
         own_consumption.to_pickle(pkl_filename_eigen)
         print(f"--- Simulation Batterie nach netzdienlich ---")
-        grid_friendly = cal_grid_friendly(df=own_consumption,
+        grid_friendly, df_list_opt = cal_grid_friendly(df=own_consumption,
                                           speichergroessen=speichergroessen,
                                           eta=eta,
                                           soc_max=soc_max,
@@ -81,6 +81,7 @@ def main():
         print(f'--- Save Optimized Netzdienlich als pickle ---')
         pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
         grid_friendly.to_pickle(pkl_filename)
+        df_list_opt.to_pickle(f'documents/liste_von_optidx_netzdienlich.pkl')
         grid_friendly.to_csv(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.csv')
         """ print(grid_friendly.keys())
         print(grid_friendly.columns)
