@@ -35,7 +35,7 @@ soc_start = None  # input as float between 0.1,0,9; default = 0.45
 #                               20)) # step # in days for the year
 startday = 150
 endday = startday + 1
-daysteps = 180
+daysteps = 15
 filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
 
 
@@ -64,8 +64,8 @@ def main():
                                                       min_flow_threshold=min_flow_threshold
                                                       )
         print(f'--- Save Optimized Eigenverbrauchsopimiert als pickle ---')
-        pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
-        own_consumption.to_pickle(pkl_filename)
+        pkl_filename_eigen = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
+        own_consumption.to_pickle(pkl_filename_eigen)
         print(f"--- Simulation Batterie nach netzdienlich ---")
         grid_friendly = cal_grid_friendly(df=own_consumption,
                                           speichergroessen=speichergroessen,
@@ -82,7 +82,9 @@ def main():
         pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
         grid_friendly.to_pickle(pkl_filename)
         grid_friendly.to_csv(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.csv')
-        print(grid_friendly.keys())
+        """ print(grid_friendly.keys())
+        print(grid_friendly.columns)
+        exit()"""
 
     else:
         pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'

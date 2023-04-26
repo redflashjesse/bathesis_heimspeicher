@@ -139,5 +139,6 @@ def cal_battery_own_consumption(netz_pv, soc_max,
 		netz_pv[f'soc_delta_{speichergroesse}Wh_eigenverbrauch'] = soc_deltas
 		netz_pv[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch'] = netzbezug
 		netz_pv[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'] = netzeinspeisung
+		netz_pv[f'p_netzleistung_{speichergroesse}Wh_eigenverbrauch'] = netzleistung # TODO wird noch nicht im gesamten df aufgeführt
 
 	return netz_pv  # Leistungen_Speicher_eigenverbrauch

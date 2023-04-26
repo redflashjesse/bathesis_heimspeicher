@@ -52,11 +52,11 @@ and storage size combination.
 		endday = startday + 1
 
 		for size in speichergroessen:
-			#plot_power(df=df,
-			 #          startday=startday,
-			  #         endday=endday,
-			   #        size=size
-			    #       )
+			plot_power(df=df,
+			           startday=startday,
+			           endday=endday,
+			           size=size
+			           )
 
 			plot_histogram_sns(df=df,
 			               startday=startday,

@@ -37,7 +37,7 @@ def plot_histogram_sns(df, startday, endday, size, binsize=25):
     # Make a multiple-histogram of data-sets with different length.
     # x_multi = [leistung_pure, leistung_eigenverbrauch, leistung_netz]
     # colors = ['green', 'blue', 'orange']
-    labels = ['ohne Speicher', 'Speicher eigenverbrauch', 'Soeicher netzdiehnlich']
+    labels = ['ohne Speicher', 'Speicher eigenverbrauch', 'Speicher netzdienlich']
 
     sns.set_style('whitegrid')
     ax = sns.displot(data=pd.DataFrame({labels[0]: leistung_pure,
