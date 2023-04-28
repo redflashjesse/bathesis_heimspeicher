@@ -180,8 +180,24 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
 
                 optimizable_indices_list = df_day['GridPowerOut'].sort_values(ascending=False).index.tolist()
                 assert len(df_day['GridPowerOut']) == len(optimizable_indices_list)
+
+                # length of each day
+                desired_length = len(df_day['GridPowerOut'])
+
+                # fill the length up 1440 values
+                # optimizable_indices_list = np.pad(optimizable_indices_list, (0, desired_length - len(optimizable_indices_list)),
+                #                     mode='constant', constant_values=np.nan)
                 df_list_opt[f'GridPowerOut_{day}_{speichergroesse}Wh'] = df_day['GridPowerOut']
-                df_list_opt[f'optimizable_indices_list_{day}_{speichergroesse}Wh'] = optimizable_indices_list
+                print(f'{len(optimizable_indices_list)=}')
+                print(f'{desired_length=}')
+
+                # Fülle fehlende Werte mit NaN auf
+                optimizable_indices_list_len = np.pad(optimizable_indices_list, (0, desired_length - len(optimizable_indices_list)),
+                                                 mode='constant', constant_values=np.nan)
+                print(f'{len(optimizable_indices_list_len)=}, {day=}')
+
+
+                df_list_opt[f'optimizable_indices_list_{day}_{speichergroesse}Wh'] = optimizable_indices_list_len
 
                 optimization_steps_estimate = 0
 
@@ -208,7 +224,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()
 
                 # Bestimme die gewünschte Länge der Spalte optimizable_indices
-                desired_length = len(GridPowerOut)
+                desired_length = len(df_day['GridPowerOut'])
 
                 # Fülle fehlende Werte mit NaN auf
                 optimizable_indices_len = np.pad(optimizable_indices, (0, desired_length - len(optimizable_indices)),

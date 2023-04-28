@@ -1,8 +1,11 @@
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import dash
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
+import plotly.io as pio
+from plotly.subplots import make_subplots
 
 # Load data
 df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
@@ -43,35 +46,100 @@ df['Index'] = df.index
 
 # Plotly-Figur erstellen
 fig = px.scatter(df, x=df.index,
-                 y=[(df['GridPowerIn[Wh]']+ df['GridPowerOut[Wh]']),
+                 y=[
+                    (df['GridPowerIn[Wh]'] + (df['PowerGeneratedPV[Wh]'] - df['GridPowerOut[Wh]'])),
+                    (df['GridPowerIn[Wh]'] - df['GridPowerOut[Wh]']),
                     df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'],
-                    df['p_netzleistung_12000Wh_netzdienlich[Wh]']],
+                    df['p_netzleistung_12000Wh_netzdienlich[Wh]'],
+                    ],
                  # color='source',
-                 range_y=[0, 1000],
-                 #hover_name=[df.index],
+                 # range_y=[-20,20],
+                 # hover_name=[df.index],
                      #'Leistung ohne Speicher', 'Leistung nach eigenverbrauch', 'Leistung nach netzdienlich'],
                  # hover_data=['soc_scaled']
+                 title='Leistung im Quartier',
+                 labels={
+                     'x': 'Zeit',
+                     'y': 'Leistung [Wh]'
+                    },
+                 marginal_y='violin',
+                 #marginal_y='boxplot'
                  )
-"""
-fig.add_trace(px.line(df, x=df.index,
-                      y='current_soc_12000Wh_eigenverbrauch',
-                      name='SOC Eigenverbrauch')['data'][0])
-fig.update_traces(name='SOC', selector=dict(name='line'))
-fig.add_trace(px.line(df, x=df.index,
-                      y='current_soc_12000Wh_netzdienlich',
-                      name='SOC Netzdienlichkeit')['data'][0])
-fig.update_traces(name='SOC', selector=dict(name='line'))
-fig.update_layout(yaxis_title='Power (kWh)',
-                  yaxis2_title='SOC (%)',
-                  yaxis2=dict(side='right', overlaying='y',
-                              range=[0, 100], tickvals=[0, 20, 40, 60, 80, 100]))"""
+fig.update_traces(name="Grid Power", selector=dict(name="y0"))
+fig.update_layout(legend=dict(
+    title='Leistungsanteil'
+))
+
+fig2 = px.scatter(df, x=df.index,
+                 y=[(df['GridPowerIn[Wh]']),
+                    (df['p_netzbezug_12000Wh_netzdienlich[Wh]']),
+                    (df['p_netzbezug_12000Wh_eigenverbrauch[Wh]']),
+                    ],
+                 # color='source',
+                 # range_y=[-20,20],
+                 # hover_name=[df.index],
+                     #'Leistung ohne Speicher', 'Leistung nach eigenverbrauch', 'Leistung nach netzdienlich'],
+                 # hover_data=['soc_scaled']
+                 title='Leistungsbezug im Quartier',
+                 labels={
+                     'x': 'Zeit',
+                     'y': 'Leistung [Wh]'
+                    },
+                 marginal_y='violin',
+                 )
+fig2.update_traces(name="Grid Power", selector=dict(name="y0"))
+fig2.update_layout(legend=dict(
+    title='Veränderung der Leistungen durch Speicher'
+))
+
+fig3 = px.scatter(df, x=df.index,
+                 y=[(-df['GridPowerOut[Wh]']),
+                    (-df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]']),
+                    (-df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]']),
+                    ],
+                 # color='source',
+                 # range_y=[-20,20],
+                 # hover_name=[df.index],
+                     #'Leistung ohne Speicher', 'Leistung nach eigenverbrauch', 'Leistung nach netzdienlich'],
+                 # hover_data=['soc_scaled']
+                 title='Einspeiseleistung im Quartier',
+                 labels={
+                     'x': 'Zeit',
+                     'y': 'Leistung [Wh]'
+                    },
+                 marginal_y='violin',
+                 )
 
 # Dash-App erstellen
 app = dash.Dash(__name__)
 
 app.layout = html.Div([
+    html.H1('Leistung im Quartier'),
     dcc.Graph(id='live-graph', figure=fig),
+    html.H2('Leistungsänderung im Quartier'),
+    dcc.Graph(id='live-graph', figure=fig2),
+    html.H3('Leistungsänderung im Quartier'),
+    dcc.Graph(id='live-graph', figure=fig3),
 ])
+
+# Erstellen Sie einige Beispiel-Figuren
+fig_go = go.Figure(fig)
+fig2_go = go.Figure(fig2)
+fig3_go = go.Figure(fig3)
+
+# Erstellen Sie ein gemeinsames Ausgabefeld mit Subplots
+fig_combined = make_subplots(rows=3, cols=1, subplot_titles=("Figure 1", "Figure 2", "Figure 3"))
+fig_combined.add_trace(fig_go.data[0], row=1, col=1)
+fig_combined.add_trace(fig2_go.data[0], row=2, col=1)
+fig_combined.add_trace(fig3_go.data[0], row=3, col=1)
+
+# Zeigen Sie das kombinierte Ausgabefeld an
+fig_combined.show()
+fig.show()
+fig2.show()
+fig3.show()
+# Speichern Sie das Dashboard als HTML-Datei
+# pio.write_html(fig_combined, file="Leistungsanzeige.html", auto_open=True)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

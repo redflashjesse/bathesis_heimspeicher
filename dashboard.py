@@ -1,7 +1,7 @@
 # Import packages
 from dash import Dash, html, dcc
 import pandas as pd
-import dash_table
+from dash import dash_table
 # from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 # import dash_core_components as dcc
@@ -24,6 +24,11 @@ df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netz
       dtype='object')
 print(df.columns)
 exit()# """
+
+"""df_optidx_list = pd.read_pickle(f'documents/liste_von_optidx_netzdienlich.pkl')
+print(df_optidx_list)
+df_optidx_list.to_csv(f'documents/liste_von_optidx_netzdienlich.csv')
+exit()"""
 # Initialize the app
 app = Dash(__name__)
 

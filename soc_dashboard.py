@@ -2,6 +2,7 @@
 import plotly.graph_objects as go
 import pandas as pd
 from dash import Dash, html, dcc
+import plotly.express as px
 
 # Load data
 df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
@@ -19,92 +20,44 @@ df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netz
 print(df.columns)
 exit()# """
 
-# Datetime-Spalte formatieren
-df['timestamp'] = pd.to_datetime(df.index)
+# Leistungswerte von Wmin in Wh umrechnen
+df['PowerGeneratedPV[Wh]'] = df['PowerGeneratedPV'] / 60
+df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / 60
+df['GridPowerIn[Wh]'] = df['GridPowerIn'] / 60
+df['GridPowerOut[Wh]'] = df['GridPowerOut'] / 60
+df['p_delta_12000Wh_eigenverbrauch[Wh]'] = df['p_delta_12000Wh_eigenverbrauch'] / 60
+df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'] = df['p_netzbezug_12000Wh_eigenverbrauch'] / 60
+df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzeinspeisung_12000Wh_eigenverbrauch'] / 60
+df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzleistung_12000Wh_eigenverbrauch'] / 60
+df['p_delta_12000Wh_netzdienlich[Wh]'] = df['p_delta_12000Wh_netzdienlich'] / 60
+df['p_netzbezug_12000Wh_netzdienlich[Wh]'] = df['p_netzbezug_12000Wh_netzdienlich'] / 60
+df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'] = df['p_netzeinspeisung_12000Wh_netzdienlich'] / 60
+df['p_netzleistung_12000Wh_netzdienlich[Wh]'] = df['p_netzleistung_12000Wh_netzdienlich'] / 60
 
+# SOC um Faktor 10 multiplizieren vom Bereich 0-1 auf 0-100 zukommen für die bessere Ansicht
+df['current_soc_12000Wh_eigenverbrauch_0-100'] = df['current_soc_12000Wh_eigenverbrauch'] * 100
+df['current_soc_12000Wh_netzdienlich_0-100'] = df['current_soc_12000Wh_netzdienlich'] * 100
+
+df['Index'] = df.index
+
+# Multiplikation mit 100 und Glättung
+smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(60).mean() * 100
+smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(60).mean() * 100
+
+# Scatter plot erstellen
+fig = px.scatter(df, x='Index', y=[smoothed_eigenverbrauch, smoothed_netzdienlich],
+                 labels={'Index': 'Zeit', 'value': 'SoC', 'variable': 'Modus'},
+                 marginal_y='violin',
+                 title='SOC-Verlauf zwischen Eigenverbrauch und Netzdienlichkeit')
+fig.show()
+exit()
 # Initialize the app
 app = Dash(__name__)
 
-# Layout definieren
-app.layout = html.Div(children=[
-    html.H1(children='Verlauf des SoC des Speichers nach Netzdienlichkeit und Eigenverbrauch'),
-
-    # Plot für Netzdienlichkeit
-    dcc.Graph(
-        id='soc-netzdienlichkeit',
-        figure={
-            'data': [
-                go.Scatter(
-                    x=df['timestamp'],
-                    y=df['current_soc_12000Wh_netzdienlich'],
-                    mode='markers', # 'lines',
-                    name='Netzdienlich'
-                )
-            ],
-            'layout': go.Layout(
-                xaxis={'title': 'Zeit'},
-                yaxis={'title': 'SoC'},
-                title='Netzdienlich'
-            )
-        }
-    ),
-
-    # Plot für Eigenverbrauch
-    dcc.Graph(
-        id='soc-eigenverbrauch',
-        figure={
-            'data': [
-                go.Scatter(
-                    x=df['timestamp'],
-                    y=df['current_soc_12000Wh_eigenverbrauch'],
-                    mode='markers', #'lines',
-                    name='Eigenverbrauch'
-                )
-            ],
-            'layout': go.Layout(
-                xaxis={'title': 'Zeit'},
-                yaxis={'title': 'SoC'},
-                title='Eigenverbrauch'
-            )
-        }
-    ),
-    # Violin-Plot
-    html.Div(
-        dcc.Graph(
-            id='violin-plot',
-            figure={
-                'data': [
-                    go.Violin(
-                        y=df['current_soc_12000Wh_netzdienlich'],
-                        name='Netzdienlich',
-                        side='positive',
-                        box_visible=True,
-                        meanline_visible=True,
-                        jitter=0.05,
-                        points='all',
-                        scalemode='count'
-                    ),
-                    go.Violin(
-                        y=df['current_soc_12000Wh_eigenverbrauch'],
-                        name='Eigenverbrauch',
-                        side='negative',
-                        box_visible=True,
-                        meanline_visible=True,
-                        jitter=0.05,
-                        points='all',
-                        scalemode='count'
-                    )
-                ],
-                'layout': go.Layout(
-                    title='Verteilung des SoC des Speichers nach Netzdienlichkeit und Eigenverbrauch',
-                    xaxis={'title': 'Kategorie'},
-                    yaxis={'title': 'SoC'},
-                    violinmode='overlay'
-                )
-            }
-        )
-    )
+# Define layout
+app.layout = html.Div([
+    html.H1('Verlauf des SoC des Speichers nach Netzdienlichkeit und Eigenverbrauch'),
+    dcc.Graph(id='live-graph', figure=fig),
 ])
-
 if __name__ == '__main__':
     app.run_server(debug=True)
