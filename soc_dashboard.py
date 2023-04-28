@@ -45,9 +45,9 @@ smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(60).m
 smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(60).mean() * 100
 
 # Scatter plot erstellen
-fig = px.scatter(df, x='Index', y=[smoothed_eigenverbrauch, smoothed_netzdienlich],
-                 labels={'Index': 'Zeit', 'value': 'SoC', 'variable': 'Modus'},
-                 marginal_y='violin',
+fig = px.line(df, x='Index', y=[smoothed_eigenverbrauch, smoothed_netzdienlich],
+                 labels={'Index': 'Zeit', 'value': 'SoC', 'variable': 'Betriebsweise Speicher'},
+                 # marginal_y='violin',
                  title='SOC-Verlauf zwischen Eigenverbrauch und Netzdienlichkeit')
 fig.show()
 exit()
