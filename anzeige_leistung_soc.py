@@ -117,15 +117,18 @@ fig3 = px.scatter(df, x='Index',
                     },
                  marginal_y='violin',
                  )
+
+
+
+fig4 = px.line(df, x='Index',
+               y=[smoothed_eigenverbrauch, smoothed_netzdienlich],
+               labels={'Index': 'Zeit',
+                       'value': 'SoC',
+                       'variable': 'Betriebsweise Speicher'},
+               markers=True,
+               title='SOC-Verlauf zwischen Eigenverbrauch und Netzdienlichkeit')
 fig3.show()
 exit()
-
-
-fig4 = px.line(df, x='Index', y=[smoothed_eigenverbrauch, smoothed_netzdienlich],
-                 labels={'Index': 'Zeit', 'value': 'SoC', 'variable': 'Betriebsweise Speicher'},
-                 # marginal_y='violin',
-                 title='SOC-Verlauf zwischen Eigenverbrauch und Netzdienlichkeit')
-
 
 # Dash-App erstellen
 app = dash.Dash(__name__)

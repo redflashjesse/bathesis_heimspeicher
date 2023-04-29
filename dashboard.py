@@ -11,24 +11,68 @@ import plotly.express as px
 
 # Load data
 df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
-"""Index(['PowerGeneratedPV', 'PowerOutputPV', 'GridPowerIn', 'GridPowerOut',
-       'p_delta_12000Wh_eigenverbrauch', 'current_soc_12000Wh_eigenverbrauch',
-       'soc_delta_12000Wh_eigenverbrauch',
-       'p_netzbezug_12000Wh_eigenverbrauch',
-       'p_netzeinspeisung_12000Wh_eigenverbrauch',
-       'p_netzleistung_12000Wh_eigenverbrauch', 'p_delta_12000Wh_netzdienlich',
-       'current_soc_12000Wh_netzdienlich', 'soc_delta_12000Wh_netzdienlich',
-       'p_netzbezug_12000Wh_netzdienlich',
-       'p_netzeinspeisung_12000Wh_netzdienlich',
-       'p_netzleistung_12000Wh_netzdienlich'],
-      dtype='object')
-print(df.columns)
-exit()# """
+# Leistungswerte von Wmin in Wh umrechnen
+# SOC um Faktor 10 multiplizieren vom Bereich 0-1 auf 0-100 zukommen für die bessere Ansicht
+df['Index'] =df.index
+# df['Messdaten_Quatier'] = []
+df['PowerGeneratedPV[Wh]'] = -df['PowerGeneratedPV'] / 60
+df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / 60
+df['GridPowerIn[Wh]'] = df['GridPowerIn'] / 60
+df['GridPowerOut[Wh]'] = -df['GridPowerOut'] / 60
+#df[f'Speichersimulation_{speichergroesse}Wh_eigenverbrauch'] =[]
+df['p_delta_12000Wh_eigenverbrauch[Wh]'] = df['p_delta_12000Wh_eigenverbrauch'] / 60
+df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'] = df['p_netzbezug_12000Wh_eigenverbrauch'] / 60
+df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'] = -df['p_netzeinspeisung_12000Wh_eigenverbrauch'] / 60
+df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzleistung_12000Wh_eigenverbrauch'] / 60
+df['current_soc_12000Wh_eigenverbrauch'] = df['current_soc_12000Wh_eigenverbrauch'] * 100
+#df[f'Speichersimulation_{speichergroesse}Wh_netzdienlich'] =[]
+df['p_delta_12000Wh_netzdienlich[Wh]'] = df['p_delta_12000Wh_netzdienlich'] / 60
+df['p_netzbezug_12000Wh_netzdienlich[Wh]'] = df['p_netzbezug_12000Wh_netzdienlich'] / 60
+df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'] = -df['p_netzeinspeisung_12000Wh_netzdienlich'] / 60
+df['p_netzleistung_12000Wh_netzdienlich[Wh]'] = df['p_netzleistung_12000Wh_netzdienlich'] / 60
+df['current_soc_12000Wh_netzdienlich'] = df['current_soc_12000Wh_netzdienlich'] * 100
+
+# Multiplikation mit 100 und Glättung
+smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(30).mean() * 100
+smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(30).mean() * 100
 
 """df_optidx_list = pd.read_pickle(f'documents/liste_von_optidx_netzdienlich.pkl')
 print(df_optidx_list)
 df_optidx_list.to_csv(f'documents/liste_von_optidx_netzdienlich.csv')
 exit()"""
+
+# table of the hole simulation
+
+# Round all numbers in the dataframe to 4 decimal places
+df = df.round(4)
+
+# Create table trace
+table_trace = go.Table(
+    header=dict(values=list(df.columns),
+                fill_color='lightblue',
+                align='center'),
+    cells=dict(values=[df[col] for col in df.columns],
+               fill_color='white',
+               align='center'))
+
+# Customize the layout of the table
+layout = go.Layout(
+    width=3000, # Set the width of the table to fit the screen
+    height=600, # Set the height of the table to allow for scrolling
+    margin=dict(l=20, r=20, t=20, b=20), # Add margins to the table
+    xaxis=dict(showgrid=True, zeroline=False, showticklabels=False),
+    yaxis=dict(showgrid=True, zeroline=True, showticklabels=False),
+    plot_bgcolor='gray',
+    hovermode='y', #  "closest", "x", "y", "none"
+)
+
+# Create figure
+fig = go.Figure(data=[table_trace], layout=layout)
+
+# Show figure
+fig.show()
+
+exit()
 # Initialize the app
 app = Dash(__name__)
 
@@ -106,7 +150,8 @@ app.layout = html.Div([
                                'p_netzleistung_12000Wh_netzdienlich'],
                             nbins=150
                             )
-    )
+    ),
+    html.H3(children='Differenz zwischen Eigenverbrauch')
 ])
 
 # Run the app
