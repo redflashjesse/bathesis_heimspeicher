@@ -1,3 +1,147 @@
+import dash
+import dash_bootstrap_components as dbc
+from dash import html
+from pandas.io.formats.style import color
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Load data
+df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
+# Leistungswerte von Wmin in Wh umrechnen
+df['PowerGeneratedPV[Wh]'] = -df['PowerGeneratedPV'] / 60
+df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / 60
+df['GridPowerIn[Wh]'] = df['GridPowerIn'] / 60
+df['GridPowerOut[Wh]'] = -df['GridPowerOut'] / 60
+df['p_delta_12000Wh_eigenverbrauch[Wh]'] = df['p_delta_12000Wh_eigenverbrauch'] / 60
+df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'] = df['p_netzbezug_12000Wh_eigenverbrauch'] / 60
+df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'] = -df['p_netzeinspeisung_12000Wh_eigenverbrauch'] / 60
+df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzleistung_12000Wh_eigenverbrauch'] / 60
+df['p_delta_12000Wh_netzdienlich[Wh]'] = df['p_delta_12000Wh_netzdienlich'] / 60
+df['p_netzbezug_12000Wh_netzdienlich[Wh]'] = df['p_netzbezug_12000Wh_netzdienlich'] / 60
+df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'] = -df['p_netzeinspeisung_12000Wh_netzdienlich'] / 60
+df['p_netzleistung_12000Wh_netzdienlich[Wh]'] = df['p_netzleistung_12000Wh_netzdienlich'] / 60
+
+# SOC um Faktor 10 multiplizieren vom Bereich 0-1 auf 0-100 zukommen für die bessere Ansicht
+df['current_soc_12000Wh_eigenverbrauch'] = df['current_soc_12000Wh_eigenverbrauch'] * 100
+df['current_soc_12000Wh_netzdienlich'] = df['current_soc_12000Wh_netzdienlich'] * 100
+
+df['Index'] = df.index
+speichergroesse = 12000
+pvdiketnutzung_kwh = (df['PowerGeneratedPV[Wh]'].sum)-(df['GridPowerOut[Wh]'].sum)
+
+summe_netzbezug_kWh = [f"Summe Netzbezug",
+                       (f"{(df['GridPowerIn[Wh]'].sum)}kWh"),
+                       "für das Jahr 2021"]
+summe_netzeinspeisung_kWh = [f"Summe Netzeinspeisung", f"{(df['GridPowerOut[Wh]'].sum)}kWh", "für das Jahr 2021"]
+summe_pvertrag_kWh = [f"Summe PV Ertrag", f"{(df['PowerGeneratedPV[Wh]'].sum)}kWh", "für das Jahr 2021"]
+summe_pvdirketnutzung_kWh = [f"Summe PV Direktnutzung", f"{pvdiketnutzung_kwh}kWh", "für das Jahr 2021"]
+
+summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{(df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
+summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzeinspeisung mit Speicher {speichergroesse}Wh", f"{(df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
+summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzleistung mit Speicher {speichergroesse}Wh", f"{(df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
+summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{(df['p_delta_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
+
+summe_netzbezug_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{(df['p_netzbezug_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
+summe_netzeinspeisung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzeinspeisung mit Speicher {speichergroesse}Wh", f"{(df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
+summe_netzleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzleistung mit Speicher {speichergroesse}Wh", f"{(df['p_netzleistung_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
+summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{(df['p_delta_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+def create_card(title, content, text, color):
+    card = dbc.Card(
+        dbc.CardBody(
+            [
+                html.H4(title, className="card-title"),
+                html.Br(),
+                html.H2(content, className="card-subtitle"),
+                html.Br(),
+                html.P(text, className="card-text"),
+                html.Br(),
+            ]
+        ),
+        color=color, # "primary", "secondary", "success", "warning", "danger", "info", "light" und "dark". Du kannst aber auch jede gültige CSS-Farbe als String verwenden.
+        inverse=True
+    )
+    return(card)
+
+card01 = create_card(summe_netzbezug_kWh, "info")
+card02 = create_card(summe_netzeinspeisung_kWh, "info")
+card03 = create_card(summe_pvertrag_kWh, "info")
+card04 = create_card(summe_pvdirketnutzung_kWh, "info")
+card05 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "agsunset")
+card06 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "agsunset")
+
+card11 = create_card(summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
+card12 = create_card(summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
+card13 = create_card(summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
+card14 = create_card(summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
+card15 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "oryel")
+card16 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "oryel")
+
+card21 = create_card("Number of Helpfuls On Articles", "None Helpfuls", "Hinweis", "secondary")
+card22 = create_card("Number of Likes On Articles", "None Likes", "Hinweis", "secondary")
+card23 = create_card("Number of Articles", "None Articles", "Hinweis", "secondary")
+card24 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "secondary")
+card25 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "rainbow")
+card26 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "rainbow")
+
+app.layout = html.Div([
+    dbc.Row([
+        dbc.Col(card01, width=2),
+        dbc.Col(card02, width=2),
+        dbc.Col(card03, width=2),
+        dbc.Col(card04, width=2),
+        dbc.Col(card05, width=2),
+        dbc.Col(card06, width=2),
+    ]),
+    dbc.Row([
+        dbc.Col(card11, width=2),
+        dbc.Col(card12, width=2),
+        dbc.Col(card13, width=2),
+        dbc.Col(card14, width=2),
+        dbc.Col(card15, width=2),
+        dbc.Col(card16, width=2),
+    ]),
+    dbc.Row([
+
+        dbc.Col(card21, width=2),
+        dbc.Col(card22, width=2),
+        dbc.Col(card23, width=2),
+        dbc.Col(card24, width=2),
+        dbc.Col(card25, width=2),
+        dbc.Col(card26, width=2),
+    ]),
+])
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
+
+"""- One of the following named colorscales:
+            ['aggrnyl', 'agsunset', 'algae', 'amp', 'armyrose', 'balance',
+             'blackbody', 'bluered', 'blues', 'blugrn', 'bluyl', 'brbg',
+             'brwnyl', 'bugn', 'bupu', 'burg', 'burgyl', 'cividis', 'curl',
+             'darkmint', 'deep', 'delta', 'dense', 'earth', 'edge', 'electric',
+             'emrld', 'fall', 'geyser', 'gnbu', 'gray', 'greens', 'greys',
+             'haline', 'hot', 'hsv', 'ice', 'icefire', 'inferno', 'jet',
+             'magenta', 'magma', 'matter', 'mint', 'mrybm', 'mygbm', 'oranges',
+             'orrd', 'oryel', 'oxy', 'peach', 'phase', 'picnic', 'pinkyl',
+             'piyg', 'plasma', 'plotly3', 'portland', 'prgn', 'pubu', 'pubugn',
+             'puor', 'purd', 'purp', 'purples', 'purpor', 'rainbow', 'rdbu',
+             'rdgy', 'rdpu', 'rdylbu', 'rdylgn', 'redor', 'reds', 'solar',
+             'spectral', 'speed', 'sunset', 'sunsetdark', 'teal', 'tealgrn',
+             'tealrose', 'tempo', 'temps', 'thermal', 'tropic', 'turbid',
+             'turbo', 'twilight', 'viridis', 'ylgn', 'ylgnbu', 'ylorbr',
+             'ylorrd']"""
+
+
+
+
+exit()
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 """
