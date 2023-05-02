@@ -33,8 +33,8 @@ df['p_netzleistung_12000Wh_netzdienlich[Wh]'] = df['p_netzleistung_12000Wh_netzd
 df['current_soc_12000Wh_netzdienlich'] = df['current_soc_12000Wh_netzdienlich'] * 100
 
 # Multiplikation mit 100 und Glättung
-smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(30).mean() * 100
-smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(30).mean() * 100
+smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(30).mean()
+smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(30).mean()
 
 """df_optidx_list = pd.read_pickle(f'documents/liste_von_optidx_netzdienlich.pkl')
 print(df_optidx_list)
@@ -45,13 +45,30 @@ exit()"""
 
 # Round all numbers in the dataframe to 4 decimal places
 df = df.round(4)
-
+#rows of intresst
+columnslist = [
+            "Index",
+            "PowerGeneratedPV[Wh]",
+            "PowerOutputPV[Wh]",
+            "GridPowerIn[Wh]",
+            "GridPowerOut[Wh]",
+            "p_delta_12000Wh_eigenverbrauch[Wh]",
+            "p_netzbezug_12000Wh_eigenverbrauch[Wh]",
+            "p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]",
+            "p_netzleistung_12000Wh_eigenverbrauch[Wh]",
+            "current_soc_12000Wh_eigenverbrauch",
+            "p_delta_12000Wh_netzdienlich[Wh]",
+            "p_netzbezug_12000Wh_netzdienlich[Wh]",
+            "p_netzeinspeisung_12000Wh_netzdienlich[Wh]",
+            "p_netzleistung_12000Wh_netzdienlich[Wh]",
+            "current_soc_12000Wh_netzdienlich"
+           ]
 # Create table trace
 table_trace = go.Table(
-    header=dict(values=list(df.columns),
+    header=dict(values=list(columnslist),
                 fill_color='lightblue',
                 align='center'),
-    cells=dict(values=[df[col] for col in df.columns],
+    cells=dict(values=[df[col] for col in columnslist],
                fill_color='white',
                align='center'))
 
@@ -69,8 +86,26 @@ layout = go.Layout(
 # Create figure
 fig = go.Figure(data=[table_trace], layout=layout)
 
+fig1 = go.Figure({
+    'data': [
+        go.Scatter(x=df.index, y=df['GridPowerIn[Wh]'], name='ohne Speicher', mode='markers'),
+        go.Violin(x=df.index, y=df['GridPowerIn[Wh]'], name='ohne Speicher', yaxis='y2'),
+        go.Scatter(x=df.index, y=df['GridPowerOut[Wh]'], name='ohne Speicher', mode='markers'),
+        go.Violin(x=df.index, y=df['GridPowerOut[Wh]'], name='ohne Speicher', yaxis='y2'),
+        go.Scatter(x=df.index, y=df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'], name='Eigenverbrauch', mode='markers'),
+        go.Violin(x=df.index, y=df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'], name='Eigenverbrauch', yaxis='y2'),
+        go.Scatter(x=df.index, y=df['p_netzleistung_12000Wh_netzdienlich[Wh]'], name='Netzdienlich', mode='markers'),
+        go.Violin(x=df.index, y=df['p_netzleistung_12000Wh_netzdienlich[Wh]'], name='Netzdienlich', yaxis='y2')
+    ],
+    'layout': go.Layout(
+        title='Power as a Function of Time',
+        xaxis={'title': 'Time'},
+        yaxis={'title': 'Power (Wmin)'},
+        yaxis2={'title': 'Power (Wmin)', 'overlaying': 'y', 'side': 'right'}
+    )
+})
 # Show figure
-fig.show()
+fig1.show()
 
 exit()
 # Initialize the app
@@ -92,7 +127,7 @@ app.layout = html.Div([
         for column in df.columns
     ]),
 
-    """html.H2(children='Power as a Function of Time (Leistungsverlauf)'),
+    html.H2(children='Power as a Function of Time (Leistungsverlauf)'),
     dcc.Graph(
         id='power-vs-time',
         figure={
@@ -105,29 +140,8 @@ app.layout = html.Div([
             ],
             'layout': go.Layout(title='Power as a Function of Time', xaxis_title='Time', yaxis_title='Power (Wmin)')
         }
-    )""",
-
-    dcc.Graph(
-        id='power-vs-time',
-        figure={
-            'data': [
-                go.Scatter(x=df.index, y=df['GridPowerIn'], name='ohne Speicher', mode='markers'),
-                go.Violin(x=df.index, y=df['GridPowerIn'], name='ohne Speicher', yaxis='y2'),
-                go.Scatter(x=df.index, y=df['GridPowerOut'], name='ohne Speicher', mode='markers'),
-                go.Violin(x=df.index, y=df['GridPowerOut'], name='ohne Speicher', yaxis='y2'),
-                go.Scatter(x=df.index, y=df['p_netzleistung_12000Wh_eigenverbrauch'], name='Eigenverbrauch', mode='markers'),
-                go.Violin(x=df.index, y=df['p_netzleistung_12000Wh_eigenverbrauch'], name='Eigenverbrauch', yaxis='y2'),
-                go.Scatter(x=df.index, y=df['p_netzleistung_12000Wh_netzdienlich'], name='Netzdienlich', mode='markers'),
-                go.Violin(x=df.index, y=df['p_netzleistung_12000Wh_netzdienlich'], name='Netzdienlich', yaxis='y2')
-            ],
-            'layout': go.Layout(
-                title='Power as a Function of Time',
-                xaxis={'title': 'Time'},
-                yaxis={'title': 'Power (Wmin)'},
-                yaxis2={'title': 'Power (Wmin)', 'overlaying': 'y', 'side': 'right'}
-            )
-        }
     ),
+
     # Histogram of storage sizes (Eigenverbrauch)
     html.H2(children='Histogram of Storage Sizes (Eigenverbrauch)'),
     dcc.Graph(

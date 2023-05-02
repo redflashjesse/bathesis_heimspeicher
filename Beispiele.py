@@ -1,7 +1,7 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import html
-from pandas.io.formats.style import color
+from pandas.io.formats.style import coloring_args
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -27,13 +27,19 @@ df['current_soc_12000Wh_netzdienlich'] = df['current_soc_12000Wh_netzdienlich'] 
 
 df['Index'] = df.index
 speichergroesse = 12000
-pvdiketnutzung_kwh = (df['PowerGeneratedPV[Wh]'].sum)-(df['GridPowerOut[Wh]'].sum)
+
+
+sum_pv_gen = (df['PowerGeneratedPV[Wh]'].sum()/1000).round(2)
+sum_einspeisung = (df['GridPowerOut[Wh]'].sum()/1000).round(2)
+pvdiketnutzung_kwh = sum_pv_gen - sum_einspeisung
+power_in_wh__sum = (df['GridPowerIn[Wh]'].sum()/1000).round(2)
 
 summe_netzbezug_kWh = [f"Summe Netzbezug",
-                       (f"{(df['GridPowerIn[Wh]'].sum)}kWh"),
-                       "für das Jahr 2021"]
-summe_netzeinspeisung_kWh = [f"Summe Netzeinspeisung", f"{(df['GridPowerOut[Wh]'].sum)}kWh", "für das Jahr 2021"]
-summe_pvertrag_kWh = [f"Summe PV Ertrag", f"{(df['PowerGeneratedPV[Wh]'].sum)}kWh", "für das Jahr 2021"]
+                       (f"{(power_in_wh__sum)}kWh"),
+                       "für das Jahr 2021"
+                       ]
+summe_netzeinspeisung_kWh = [f"Summe Netzeinspeisung", f"{(sum_einspeisung)}kWh", "für das Jahr 2021"]
+summe_pvertrag_kWh = [f"Summe PV Ertrag", f"{(sum_pv_gen)}kWh", "für das Jahr 2021"]
 summe_pvdirketnutzung_kWh = [f"Summe PV Direktnutzung", f"{pvdiketnutzung_kwh}kWh", "für das Jahr 2021"]
 
 summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{(df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
@@ -65,26 +71,26 @@ def create_card(title, content, text, color):
     )
     return(card)
 
-card01 = create_card(summe_netzbezug_kWh, "info")
-card02 = create_card(summe_netzeinspeisung_kWh, "info")
-card03 = create_card(summe_pvertrag_kWh, "info")
-card04 = create_card(summe_pvdirketnutzung_kWh, "info")
-card05 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "agsunset")
-card06 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "agsunset")
+card01 = create_card(summe_netzbezug_kWh[0], summe_netzbezug_kWh[1],summe_netzbezug_kWh[2], "info")
+card02 = create_card(summe_netzeinspeisung_kWh[0],summe_netzeinspeisung_kWh[1],summe_netzeinspeisung_kWh[2], "info")
+card03 = create_card(summe_pvertrag_kWh[0],summe_pvertrag_kWh[1],summe_pvertrag_kWh[2], "info")
+card04 = create_card(summe_pvdirketnutzung_kWh[0],summe_pvdirketnutzung_kWh[1],summe_pvdirketnutzung_kWh[2], "info")
+card05 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
+card06 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
 
-card11 = create_card(summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
-card12 = create_card(summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
-card13 = create_card(summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
-card14 = create_card(summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch, "primary")
-card15 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "oryel")
-card16 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "oryel")
+card11 = create_card(summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
+card12 = create_card(summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
+card13 = create_card(summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
+card14 = create_card(summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
+card15 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
+card16 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
 
 card21 = create_card("Number of Helpfuls On Articles", "None Helpfuls", "Hinweis", "secondary")
 card22 = create_card("Number of Likes On Articles", "None Likes", "Hinweis", "secondary")
 card23 = create_card("Number of Articles", "None Articles", "Hinweis", "secondary")
 card24 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "secondary")
-card25 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "rainbow")
-card26 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "rainbow")
+card25 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
+card26 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
 
 app.layout = html.Div([
     dbc.Row([

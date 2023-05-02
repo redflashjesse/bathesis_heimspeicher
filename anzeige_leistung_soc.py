@@ -44,8 +44,8 @@ df['current_soc_12000Wh_netzdienlich'] = df['current_soc_12000Wh_netzdienlich'] 
 df['Index'] = df.index
 
 # Multiplikation mit 100 und Glättung
-smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(30).mean() * 100
-smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(30).mean() * 100
+smoothed_eigenverbrauch = df['current_soc_12000Wh_eigenverbrauch'].rolling(30).mean()
+smoothed_netzdienlich = df['current_soc_12000Wh_netzdienlich'].rolling(30).mean()
 
 # Plotly-Figur erstellen
 fig = px.scatter(df, x=df.index,
@@ -123,12 +123,11 @@ fig3 = px.scatter(df, x='Index',
 fig4 = px.line(df, x='Index',
                y=[smoothed_eigenverbrauch, smoothed_netzdienlich],
                labels={'Index': 'Zeit',
-                       'value': 'SoC',
+                       'value': 'SoC in Prozent',
                        'variable': 'Betriebsweise Speicher'},
                markers=True,
                title='SOC-Verlauf zwischen Eigenverbrauch und Netzdienlichkeit')
-fig3.show()
-exit()
+
 
 # Dash-App erstellen
 app = dash.Dash(__name__)
@@ -156,15 +155,15 @@ fig_combined.add_trace(fig_go.data[0], row=1, col=1)
 fig_combined.add_trace(fig4_go.data[0], row=1, col=1)
 fig_combined.add_trace(fig2_go.data[0], row=3, col=1)
 fig_combined.add_trace(fig3_go.data[0], row=4, col=1)
-fig_combined.marker.color=['red','blue','green']
+#fig_combined.marker.color=['red','blue','green']
 
 
 # Zeigen Sie das kombinierte Ausgabefeld an
-fig_combined.show()
-#fig.show()
-#fig2.show()
-#fig3.show()
-#fig4.show()
+#fig_combined.show()
+fig.show()
+fig2.show()
+fig3.show()
+fig4.show()
 # Speichern Sie das Dashboard als HTML-Datei
 # pio.write_html(fig_combined, file="dash-plotly_as_html/Leistungsanzeige.html", auto_open=True)
 
