@@ -4,29 +4,31 @@ from dash import html
 from pandas.io.formats.style import coloring_args
 import matplotlib.pyplot as plt
 import pandas as pd
+speichergroesse = 12000
 
 # Load data
 df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
 # Leistungswerte von Wmin in Wh umrechnen
-df['PowerGeneratedPV[Wh]'] = -df['PowerGeneratedPV'] / 60
-df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / 60
-df['GridPowerIn[Wh]'] = df['GridPowerIn'] / 60
-df['GridPowerOut[Wh]'] = -df['GridPowerOut'] / 60
-df['p_delta_12000Wh_eigenverbrauch[Wh]'] = df['p_delta_12000Wh_eigenverbrauch'] / 60
-df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'] = df['p_netzbezug_12000Wh_eigenverbrauch'] / 60
-df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'] = -df['p_netzeinspeisung_12000Wh_eigenverbrauch'] / 60
-df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzleistung_12000Wh_eigenverbrauch'] / 60
-df['p_delta_12000Wh_netzdienlich[Wh]'] = df['p_delta_12000Wh_netzdienlich'] / 60
-df['p_netzbezug_12000Wh_netzdienlich[Wh]'] = df['p_netzbezug_12000Wh_netzdienlich'] / 60
-df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'] = -df['p_netzeinspeisung_12000Wh_netzdienlich'] / 60
-df['p_netzleistung_12000Wh_netzdienlich[Wh]'] = df['p_netzleistung_12000Wh_netzdienlich'] / 60
+factor = 1 # or 60
+df['PowerGeneratedPV[Wh]'] = -df['PowerGeneratedPV'] / factor
+df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / factor
+df['GridPowerIn[Wh]'] = df['GridPowerIn'] / factor
+df['GridPowerOut[Wh]'] = -df['GridPowerOut'] / factor
+df[f'p_delta_{speichergroesse}Wh_eigenverbrauch[Wh]'] = df[f'p_delta_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch[Wh]'] = df[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch[Wh]'] = -df[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_netzleistung_{speichergroesse}Wh_eigenverbrauch[Wh]'] = df[f'p_netzleistung_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_delta_{speichergroesse}Wh_netzdienlich[Wh]'] = df[f'p_delta_{speichergroesse}Wh_netzdienlich'] / factor
+df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich[Wh]'] = df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] / factor
+df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich[Wh]'] = -df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] / factor
+df[f'p_netzleistung_{speichergroesse}Wh_netzdienlich[Wh]'] = df[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] / factor
 
 # SOC um Faktor 10 multiplizieren vom Bereich 0-1 auf 0-100 zukommen für die bessere Ansicht
-df['current_soc_12000Wh_eigenverbrauch'] = df['current_soc_12000Wh_eigenverbrauch'] * 100
-df['current_soc_12000Wh_netzdienlich'] = df['current_soc_12000Wh_netzdienlich'] * 100
+df[f'current_soc_{speichergroesse}Wh_eigenverbrauch'] = df[f'current_soc_{speichergroesse}Wh_eigenverbrauch'] * 100
+df[f'current_soc_{speichergroesse}Wh_netzdienlich'] = df[f'current_soc_{speichergroesse}Wh_netzdienlich'] * 100
 
 df['Index'] = df.index
-speichergroesse = 12000
+
 
 
 sum_pv_gen = (df['PowerGeneratedPV[Wh]'].sum()/1000).round(2)
@@ -34,6 +36,7 @@ sum_einspeisung = (df['GridPowerOut[Wh]'].sum()/1000).round(2)
 pvdiketnutzung_kwh = sum_pv_gen - sum_einspeisung
 power_in_wh__sum = (df['GridPowerIn[Wh]'].sum()/1000).round(2)
 
+autakie_ohne = (pvdiketnutzung_kwh/(df['GridPowerIn[Wh]'].sum()/1000+pvdiketnutzung_kwh)).round(3)*100
 summe_netzbezug_kWh = [f"Summe Netzbezug",
                        (f"{(power_in_wh__sum)}kWh"),
                        "für das Jahr 2021"
@@ -41,16 +44,36 @@ summe_netzbezug_kWh = [f"Summe Netzbezug",
 summe_netzeinspeisung_kWh = [f"Summe Netzeinspeisung", f"{(sum_einspeisung)}kWh", "für das Jahr 2021"]
 summe_pvertrag_kWh = [f"Summe PV Ertrag", f"{(sum_pv_gen)}kWh", "für das Jahr 2021"]
 summe_pvdirketnutzung_kWh = [f"Summe PV Direktnutzung", f"{pvdiketnutzung_kwh}kWh", "für das Jahr 2021"]
+autaktie_bestand = [f"Autaktie", f"{(autakie_ohne)} %", "für das Jahr 2021"]
 
-summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{(df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
-summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzeinspeisung mit Speicher {speichergroesse}Wh", f"{(df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
-summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzleistung mit Speicher {speichergroesse}Wh", f"{(df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
-summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{(df['p_delta_12000Wh_eigenverbrauch[Wh]'].sum)}kWh", "eigenverbrauchsoptimiert"]
+sum_netzbezug_12000Wh_eigen = ((df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'].sum() / 1000).round(2))
+sum_netzeinspeisung_12000Wh_eigen = ((df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'].sum() / 1000).round(2))
+sum_netzleistung_12000Wh_eigen = ((df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'].sum() / 1000).round(2))
+sum_speicherleistung_12000Wh_eigen = ((df[df[f'p_delta_{speichergroesse}Wh_eigenverbrauch[Wh]'] > 0][
+               f'p_delta_{speichergroesse}Wh_eigenverbrauch[Wh]'].sum() / 1000).round(2))
+sum_pvleistung_nutzung_12000Wh_eigen = (power_in_wh__sum-sum_netzbezug_12000Wh_eigen)+pvdiketnutzung_kwh
+autakie_12000Wh_eigen = (sum_pvleistung_nutzung_12000Wh_eigen/(df[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch[Wh]'].sum()/1000+sum_pvleistung_nutzung_12000Wh_eigen)).round(5)*100
 
-summe_netzbezug_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{(df['p_netzbezug_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
-summe_netzeinspeisung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzeinspeisung mit Speicher {speichergroesse}Wh", f"{(df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
-summe_netzleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzleistung mit Speicher {speichergroesse}Wh", f"{(df['p_netzleistung_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
-summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{(df['p_delta_12000Wh_netzdienlich[Wh]'].sum())}kWh", "netzdienlich optimiert"]
+summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{sum_netzbezug_12000Wh_eigen}kWh", "eigenverbrauchsoptimiert"]
+summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Netzeinspeisung mit Speicher {speichergroesse}Wh", f"{sum_netzeinspeisung_12000Wh_eigen}kWh", "eigenverbrauchsoptimiert"]
+summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Nettosumme der Leistung zum Netz mit Speicher {speichergroesse}Wh", f"{sum_netzleistung_12000Wh_eigen}kWh", "eigenverbrauchsoptimiert"]
+summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{sum_speicherleistung_12000Wh_eigen}kWh", "eigenverbrauchsoptimiert"]
+autaktie_speichergroesse_Wh_eigenverbrauch = [f"Autaktiegrad mit Speicher {speichergroesse}Wh", f"{autakie_12000Wh_eigen} %", "eigenverbrauchsoptimiert"]
+
+sum_netzbezug_12000Wh_netz = ((df['p_netzbezug_12000Wh_netzdienlich[Wh]'].sum() / 1000).round(2))
+sum_netzeinspeisung_12000Wh_netz = ((df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'].sum() / 1000).round(2))
+sum_netzleistung_12000Wh_netz = ((df['p_netzleistung_12000Wh_netzdienlich[Wh]'].sum() / 1000).round(2))
+sum_speicherleistung_12000Wh_netz = ((df[df[f'p_delta_{speichergroesse}Wh_netzdienlich[Wh]'] > 0][
+               f'p_delta_{speichergroesse}Wh_eigenverbrauch[Wh]'].sum() / 1000).round(2))
+sum_pvleistung_nutzung_12000Wh_netz = (power_in_wh__sum-sum_netzbezug_12000Wh_netz)+pvdiketnutzung_kwh
+autakie_12000Wh_netz = (sum_pvleistung_nutzung_12000Wh_netz/(df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich[Wh]'].sum()/1000+sum_pvleistung_nutzung_12000Wh_netz)).round(5)*100
+
+summe_netzbezug_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzbezug mit Speicher {speichergroesse}Wh", f"{sum_netzbezug_12000Wh_netz}kWh", "netzdienlich optimiert"]
+summe_netzeinspeisung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Netzeinspeisung mit Speicher {speichergroesse}Wh", f"{sum_netzeinspeisung_12000Wh_netz}kWh", "netzdienlich optimiert"]
+summe_netzleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Nettosumme der Leistung zum Netz mit Speicher {speichergroesse}Wh", f"{sum_netzleistung_12000Wh_netz}kWh", "netzdienlich optimiert"]
+#summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{((df[df[f'p_delta_{speichergroesse}Wh_netzdienlich[Wh]'] > 0][f'p_delta_{speichergroesse}Wh_netzdienlich[Wh]'].sum()/1000).round(2))}kWh", "netzdienlich optimiert"]
+summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich = [f"Summe Speicherleistung mit Speicher {speichergroesse}Wh", f"{sum_speicherleistung_12000Wh_netz}kWh", "netzdienlich optimiert"]
+autaktie_speichergroesse_Wh_netzdienlich = [f"Autaktiegrad mit Speicher {speichergroesse}Wh", f"{autakie_12000Wh_netz} %", "netzdienlich optimiert"]
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -75,21 +98,21 @@ card01 = create_card(summe_netzbezug_kWh[0], summe_netzbezug_kWh[1],summe_netzbe
 card02 = create_card(summe_netzeinspeisung_kWh[0],summe_netzeinspeisung_kWh[1],summe_netzeinspeisung_kWh[2], "info")
 card03 = create_card(summe_pvertrag_kWh[0],summe_pvertrag_kWh[1],summe_pvertrag_kWh[2], "info")
 card04 = create_card(summe_pvdirketnutzung_kWh[0],summe_pvdirketnutzung_kWh[1],summe_pvdirketnutzung_kWh[2], "info")
-card05 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
+card05 = create_card(autaktie_bestand[0], autaktie_bestand[1],autaktie_bestand[2], "info")
 card06 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
 
 card11 = create_card(summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_netzbezug_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
 card12 = create_card(summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_netzeinspeisung_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
 card13 = create_card(summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_netzleistung_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
 card14 = create_card(summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch[0], summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch[1], summe_speicherleistung_kWh_speichergroesse_Wh_eigenverbrauch[2], "primary")
-card15 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
+card15 = create_card(autaktie_speichergroesse_Wh_eigenverbrauch[0], autaktie_speichergroesse_Wh_eigenverbrauch[1], autaktie_speichergroesse_Wh_eigenverbrauch[2], "primary")
 card16 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
 
-card21 = create_card("Number of Helpfuls On Articles", "None Helpfuls", "Hinweis", "secondary")
-card22 = create_card("Number of Likes On Articles", "None Likes", "Hinweis", "secondary")
-card23 = create_card("Number of Articles", "None Articles", "Hinweis", "secondary")
-card24 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "secondary")
-card25 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
+card21 = create_card(summe_netzbezug_kWh_speichergroesse_Wh_netzdienlich[0], summe_netzbezug_kWh_speichergroesse_Wh_netzdienlich[1], summe_netzbezug_kWh_speichergroesse_Wh_netzdienlich[2], "secondary")
+card22 = create_card(summe_netzeinspeisung_kWh_speichergroesse_Wh_netzdienlich[0], summe_netzeinspeisung_kWh_speichergroesse_Wh_netzdienlich[1], summe_netzeinspeisung_kWh_speichergroesse_Wh_netzdienlich[2], "secondary")
+card23 = create_card(summe_netzleistung_kWh_speichergroesse_Wh_netzdienlich[0], summe_netzleistung_kWh_speichergroesse_Wh_netzdienlich[1], summe_netzleistung_kWh_speichergroesse_Wh_netzdienlich[2], "secondary")
+card24 = create_card(summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich[0], summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich[1], summe_speicherleistung_kWh_speichergroesse_Wh_netzdienlich[2], "secondary")
+card25 = create_card(autaktie_speichergroesse_Wh_netzdienlich[0], autaktie_speichergroesse_Wh_netzdienlich[1], autaktie_speichergroesse_Wh_netzdienlich[2], "secondary")
 card26 = create_card("Number of Comment on Articles", "None Comments", "Hinweis", "info")
 
 app.layout = html.Div([
@@ -99,7 +122,7 @@ app.layout = html.Div([
         dbc.Col(card03, width=2),
         dbc.Col(card04, width=2),
         dbc.Col(card05, width=2),
-        dbc.Col(card06, width=2),
+        #dbc.Col(card06, width=2),
     ]),
     dbc.Row([
         dbc.Col(card11, width=2),
@@ -107,7 +130,7 @@ app.layout = html.Div([
         dbc.Col(card13, width=2),
         dbc.Col(card14, width=2),
         dbc.Col(card15, width=2),
-        dbc.Col(card16, width=2),
+        #dbc.Col(card16, width=2),
     ]),
     dbc.Row([
 
@@ -116,7 +139,7 @@ app.layout = html.Div([
         dbc.Col(card23, width=2),
         dbc.Col(card24, width=2),
         dbc.Col(card25, width=2),
-        dbc.Col(card26, width=2),
+        #dbc.Col(card26, width=2),
     ]),
 ])
 

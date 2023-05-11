@@ -130,7 +130,7 @@ fig4 = px.line(df, x='Index',
 
 
 # Dash-App erstellen
-app = dash.Dash(__name__)
+"""app = dash.Dash(__name__)
 
 app.layout = html.Div([
     html.H1('Leistung im Quartier'),
@@ -141,7 +141,7 @@ app.layout = html.Div([
     dcc.Graph(id='live-graph', figure=fig3),
     html.H4('Leistungsänderung im Quartier'),
     dcc.Graph(id='live-graph', figure=fig4),
-])
+])"""
 
 # Erstellen Sie einige Beispiel-Figuren
 fig_go = go.Figure(fig)
@@ -160,10 +160,10 @@ fig_combined.add_trace(fig3_go.data[0], row=4, col=1)
 
 # Zeigen Sie das kombinierte Ausgabefeld an
 #fig_combined.show()
-fig.show()
-fig2.show()
+#fig.show()
+#fig2.show()
 fig3.show()
-fig4.show()
+#fig4.show()
 # Speichern Sie das Dashboard als HTML-Datei
 # pio.write_html(fig_combined, file="dash-plotly_as_html/Leistungsanzeige.html", auto_open=True)
 
