@@ -1,6 +1,7 @@
 # Imports
 import matplotlib.pyplot as plt
 import pandas as pd
+from datetime import timedelta
 
 # Importieren aller benötigten Funktionen aus den Dateien
 from gridfriendly import cal_grid_friendly
@@ -37,7 +38,7 @@ startday = 150
 endday = startday + 1
 daysteps = 15
 filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
-
+comparison_day = 140
 
 def main():
     """
@@ -46,7 +47,7 @@ def main():
     some csv data, by setting values to false or true
     """
 
-    # Hauptfunktion, die alle Funktionen aufruft
+    # main function, which contains funktion and called them in a right order
 
     if set_pickle_by_orginal:
         # Alle Funktionen ausführen
@@ -67,7 +68,7 @@ def main():
         pkl_filename_eigen = f'documents/speichersimulation_optimiert_eigenverbrauch.pkl'
         own_consumption.to_pickle(pkl_filename_eigen)
         print(f"--- Simulation Batterie nach netzdienlich ---")
-        grid_friendly, df_list_opt = cal_grid_friendly(df=own_consumption,
+        grid_friendly = cal_grid_friendly(df=own_consumption,
                                           speichergroessen=speichergroessen,
                                           eta=eta,
                                           soc_max=soc_max,
@@ -76,13 +77,18 @@ def main():
                                           soc_start=soc_start,
                                           c_out=c_out,
                                           c_in=c_in,
-                                          min_flow_threshold=min_flow_threshold
+                                          min_flow_threshold=min_flow_threshold,
+                                          comparison_day=comparison_day
                                           )
+
         print(f'--- Save Optimized Netzdienlich als pickle ---')
         pkl_filename = f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl'
         grid_friendly.to_pickle(pkl_filename)
-        df_list_opt.to_pickle(f'documents/liste_von_optidx_netzdienlich.pkl')
         grid_friendly.to_csv(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.csv')
+
+        print('Save comparison df')
+        # save_comparison_df(grid_friendly, speichergroessen, day=180)
+
         """ print(grid_friendly.keys())
         print(grid_friendly.columns)
         exit()"""

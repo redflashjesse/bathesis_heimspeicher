@@ -86,7 +86,7 @@ layout = go.Layout(
 # Create figure
 fig = go.Figure(data=[table_trace], layout=layout)
 
-fig1 = go.Figure({
+"""fig1 = go.Figure({
     'data': [
         go.Scatter(x=df.index, y=df['GridPowerIn[Wh]'], name='ohne Speicher', mode='markers'),
         go.Violin(x=df.index, y=df['GridPowerIn[Wh]'], name='ohne Speicher', yaxis='y2'),
@@ -100,14 +100,15 @@ fig1 = go.Figure({
     'layout': go.Layout(
         title='Power as a Function of Time',
         xaxis={'title': 'Time'},
-        yaxis={'title': 'Power (Wmin)'},
-        yaxis2={'title': 'Power (Wmin)', 'overlaying': 'y', 'side': 'right'}
+        yaxis={'title': 'Power (Wh)'},
+        yaxis2={'title': 'Power (Wh)', 'overlaying': 'y', 'side': 'right'}
     )
-})
+})"""
 # Show figure
-fig1.show()
+fig.show()
 
-exit()
+# exit()
+
 # Initialize the app
 app = Dash(__name__)
 
@@ -119,13 +120,6 @@ app.layout = html.Div([
     html.H2(children='Messwerte im Quartier und simulierte Werte gruppiert nach Speichergrößen'),
     dash_table.DataTable(data=df.to_dict('records'),
                          page_size=20), # style_table={'overflowY': 'scroll', 'maxHeight': '500px'},
-
-    # Sum of each column
-    html.H2(children='Sum of Each Column'),
-    html.Div(children=[
-        html.Div(children=[html.H3(column), html.H4((df[column].sum()/60))])
-        for column in df.columns
-    ]),
 
     html.H2(children='Power as a Function of Time (Leistungsverlauf)'),
     dcc.Graph(

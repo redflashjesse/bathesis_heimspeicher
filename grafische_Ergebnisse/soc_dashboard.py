@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 import pandas as pd
 from dash import Dash, html, dcc
 import plotly.express as px
-
+speichergroesse = 12000
 # Load data
-df = pd.read_pickle(f'documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
+df = pd.read_pickle(f'C:/Users/EE/Documents/Petau/bathesis_heimspeicher/documents/speichersimulation_optimiert_eigenverbrauch_netzdienlich.pkl')
 """Index(['PowerGeneratedPV', 'PowerOutputPV', 'GridPowerIn', 'GridPowerOut',
        'p_delta_12000Wh_eigenverbrauch', 'current_soc_12000Wh_eigenverbrauch',
        'soc_delta_12000Wh_eigenverbrauch',
@@ -21,18 +21,19 @@ print(df.columns)
 exit()# """
 
 # Leistungswerte von Wmin in Wh umrechnen
-df['PowerGeneratedPV[Wh]'] = df['PowerGeneratedPV'] / 60
-df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / 60
-df['GridPowerIn[Wh]'] = df['GridPowerIn'] / 60
-df['GridPowerOut[Wh]'] = df['GridPowerOut'] / 60
-df['p_delta_12000Wh_eigenverbrauch[Wh]'] = df['p_delta_12000Wh_eigenverbrauch'] / 60
-df['p_netzbezug_12000Wh_eigenverbrauch[Wh]'] = df['p_netzbezug_12000Wh_eigenverbrauch'] / 60
-df['p_netzeinspeisung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzeinspeisung_12000Wh_eigenverbrauch'] / 60
-df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'] = df['p_netzleistung_12000Wh_eigenverbrauch'] / 60
-df['p_delta_12000Wh_netzdienlich[Wh]'] = df['p_delta_12000Wh_netzdienlich'] / 60
-df['p_netzbezug_12000Wh_netzdienlich[Wh]'] = df['p_netzbezug_12000Wh_netzdienlich'] / 60
-df['p_netzeinspeisung_12000Wh_netzdienlich[Wh]'] = df['p_netzeinspeisung_12000Wh_netzdienlich'] / 60
-df['p_netzleistung_12000Wh_netzdienlich[Wh]'] = df['p_netzleistung_12000Wh_netzdienlich'] / 60
+factor = 1 # or 60
+df['PowerGeneratedPV[Wh]'] = -df['PowerGeneratedPV'] / factor
+df['PowerOutputPV[Wh]'] = df['PowerOutputPV'] / factor
+df['GridPowerIn[Wh]'] = df['GridPowerIn'] / factor
+df['GridPowerOut[Wh]'] = -df['GridPowerOut'] / factor
+df[f'p_delta_{speichergroesse}Wh_eigenverbrauch[Wh]'] = df[f'p_delta_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch[Wh]'] = df[f'p_netzbezug_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch[Wh]'] = -df[f'p_netzeinspeisung_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_netzleistung_{speichergroesse}Wh_eigenverbrauch[Wh]'] = df[f'p_netzleistung_{speichergroesse}Wh_eigenverbrauch'] / factor
+df[f'p_delta_{speichergroesse}Wh_netzdienlich[Wh]'] = df[f'p_delta_{speichergroesse}Wh_netzdienlich'] / factor
+df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich[Wh]'] = df[f'p_netzbezug_{speichergroesse}Wh_netzdienlich'] / factor
+df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich[Wh]'] = -df[f'p_netzeinspeisung_{speichergroesse}Wh_netzdienlich'] / factor
+df[f'p_netzleistung_{speichergroesse}Wh_netzdienlich[Wh]'] = df[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] / factor
 
 # SOC um Faktor 10 multiplizieren vom Bereich 0-1 auf 0-100 zukommen für die bessere Ansicht
 df['current_soc_12000Wh_eigenverbrauch_0-100'] = df['current_soc_12000Wh_eigenverbrauch'] * 100
