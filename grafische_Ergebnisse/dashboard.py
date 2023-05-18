@@ -86,24 +86,17 @@ layout = go.Layout(
 # Create figure
 fig = go.Figure(data=[table_trace], layout=layout)
 
-"""fig1 = go.Figure({
-    'data': [
-        go.Scatter(x=df.index, y=df['GridPowerIn[Wh]'], name='ohne Speicher', mode='markers'),
-        go.Violin(x=df.index, y=df['GridPowerIn[Wh]'], name='ohne Speicher', yaxis='y2'),
-        go.Scatter(x=df.index, y=df['GridPowerOut[Wh]'], name='ohne Speicher', mode='markers'),
-        go.Violin(x=df.index, y=df['GridPowerOut[Wh]'], name='ohne Speicher', yaxis='y2'),
-        go.Scatter(x=df.index, y=df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'], name='Eigenverbrauch', mode='markers'),
-        go.Violin(x=df.index, y=df['p_netzleistung_12000Wh_eigenverbrauch[Wh]'], name='Eigenverbrauch', yaxis='y2'),
-        go.Scatter(x=df.index, y=df['p_netzleistung_12000Wh_netzdienlich[Wh]'], name='Netzdienlich', mode='markers'),
-        go.Violin(x=df.index, y=df['p_netzleistung_12000Wh_netzdienlich[Wh]'], name='Netzdienlich', yaxis='y2')
-    ],
-    'layout': go.Layout(
-        title='Power as a Function of Time',
-        xaxis={'title': 'Time'},
-        yaxis={'title': 'Power (Wh)'},
-        yaxis2={'title': 'Power (Wh)', 'overlaying': 'y', 'side': 'right'}
-    )
-})"""
+# beispiel mehrere Spalten einer spalten zu ordnen
+"""app.layout = dash_table.DataTable(
+    columns=[
+        {"name": ["", "Year"], "id": "year"},
+        {"name": ["City", "Montreal"], "id": "montreal"},
+        {"name": ["City", "Toronto"], "id": "toronto"},
+        {"name": ["City", "Ottawa"], "id": "ottawa"},
+        {"name": ["City", "Vancouver"], "id": "vancouver"},
+        {"name": ["Climate", "Temperature"], "id": "temp"},
+        {"name": ["Climate", "Humidity"], "id": "humidity"},
+    ],"""
 # Show figure
 fig.show()
 
