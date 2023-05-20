@@ -1,7 +1,9 @@
-
 def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_out, startday, endday, soc_start=None, ):
     """
 # battery parameter by the size
+    :param startday:
+    :param endday:
+    :return:
     :param df:
     :param speichergroesse:
     :param p_max_in:
@@ -32,7 +34,7 @@ def cal_gridfriendly(df, speichergroesse, p_max_in, p_max_out, p_min_in, p_min_o
         elif day == 0:
             soc_akt = soc_max / 2  # assumption: 45% charged at startup
         else:
-            soc_akt = df[f'current_soc_{speichergroesse}Wh_eigenverbrauch'].iloc[start_idx - 1] # TODO
+            soc_akt = df[f'current_soc_{speichergroesse}Wh_eigenverbrauch'].iloc[start_idx - 1]  # TODO
 
         df_day = df.iloc[start_idx:end_idx].copy(deep=True)
 

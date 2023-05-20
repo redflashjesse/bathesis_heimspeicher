@@ -1,5 +1,3 @@
-
-
 """
 def cal_battery_gridfriendly(df, speichergroesse,
                              p_max_in, p_max_out, p_min_in, p_min_out,
