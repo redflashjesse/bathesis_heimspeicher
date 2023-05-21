@@ -240,7 +240,6 @@ card15 = create_card(calc_eigen[f'{size}_Wh_Eigenverbrauch']['summe_nutzung_pv_m
 card16 = create_card(calc_eigen[f'{size}_Wh_Eigenverbrauch']['autarkie_Wh_eigenverbrauch'], eigen_color)
 card17 = create_card(calc_eigen[f'{size}_Wh_Eigenverbrauch']['spitzeneinspeisung_eigenverbrauch'], eigen_color)
 
-
 card21 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['summe_netzbezug_kWh_Wh_netzdienlich'], netz_color)
 card22 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['summe_netzeinspeisung_kWh_Wh_netzdienlich'], netz_color)
 card23 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['summe_netzleistung_kWh_Wh_netzdienlich'], netz_color)
@@ -248,8 +247,6 @@ card24 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['summe_speicherleistun
 card25 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['summe_nutzung_pv_Wh_netzdienlich'], netz_color)
 card26 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['autarkie_Wh_netzdienlich'], netz_color)
 card27 = create_card(calc_netz[f'{size}_Wh_Netzdienlich']['spitzeneinspeisung_netzdienlich'], netz_color)
-
-
 
 # define the dash content
 base = html.Div([
