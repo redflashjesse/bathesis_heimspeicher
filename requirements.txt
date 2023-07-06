@@ -1,4 +1,4 @@
-pandas
+pandas==2.0.2
 matplotlib
 numpy
 seaborn
@@ -6,3 +6,4 @@ plotly
 dash
 dash_table
 dash_bootstrap_components
+kaleido==0.2.1.post1

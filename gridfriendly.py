@@ -156,8 +156,6 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 df.loc[(df.index.date >= day)
                        & (df.index.date < following_day)] = df_day
 
-            # print(f'No optimization needed in {day}')
-
             else:
                 # case reached soc limit
                 if day == first_day:  # check if the first day needs optimization
@@ -218,7 +216,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 assert optimization_steps_estimate <= len(df_day['GridPowerOut'])
                 assert optimization_steps_estimate >= 0
 
-                # Index der x höchsten Werte finden
+                # defination a list of the largest values of the day
                 optimizable_indices = df_day[f'GridPowerOut'].nlargest(optimization_steps_estimate).index.tolist()
 
                 # start gridfriendly
@@ -238,7 +236,7 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                 end_comparison = unique_days[comparison_day+10]
 
                 if start_comparison < day < end_comparison:
-                    # Erstellen des DataFrame df_comparison_day
+                    # set a dataframe for df_comparison_day
                     df_comparison_day = pd.DataFrame({
                         'Index': df_day.index,
                         'GridPowerOut': df_day['GridPowerOut'],
@@ -253,10 +251,10 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                         'Leere Spalte': ''
                     })
 
-                    # Bestimme die gewünschte Länge der Spalte optimizable_indices
+                    # definite the length of the column GridPowerOut
                     desired_length = len(df_day['GridPowerOut'])
 
-                    # Fülle fehlende Werte mit NaN auf
+                    # fill missing values with NaN
                     optimizable_indices_len = np.pad(optimizable_indices,
                                                      (0, desired_length - len(optimizable_indices)),
                                                      mode='constant', constant_values=np.nan)
@@ -270,13 +268,13 @@ def cal_grid_friendly(df, soc_max, soc_min, zeit,
                                                      (0, desired_length - len(optimizable_indices)),
                                                      mode='constant', constant_values=np.nan)
 
-                    # Erstellen der neuen Spalten
+                    # set new columns in df_comparison_day
                     df_comparison_day['Liste_Einspeisungen_abfallend'] = optimizable_indices_list
                     df_comparison_day['Leistung_Einspeisungen_abfallend'] = liste_leistung_einspeisung_sort
                     df_comparison_day['Liste_Speicherzeitpunkte'] = optimizable_indices_len
                     df_comparison_day['Leistung_Speicherzeitpunkte'] = liste_leistung_speicherzeitpunkte_len
 
-                    # Speichern des DataFrame als CSV-Datei
+                    # save csv file for choosen days, which show the optimization process in data
                     filename = f'optimiert_{day}_{speichergroesse}.csv'
                     filepath = f'documents/Darstellung_der_Optmierungeslisten/{filename}'
                     df_comparison_day.to_csv(filepath, index=False)
@@ -373,6 +371,3 @@ def optimize_one_day(df_day, p_max_out, p_min_out,
     df_day[f'p_netzleistung_{speichergroesse}Wh_netzdienlich'] = netzleistung_opt
 
     return df_day
-
-    # endfor
-    # print(f'finished optimizing {day}')

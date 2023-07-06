@@ -1,0 +1,9 @@
+Führen sie die main.py Datei aus, die Simulation zu starten.
+Daten vom Haus/Quartier sollten im Ordner hinterlegt sein.
+Ausgabe der Simulation sind Diagramme und Histogramme von einem Tag mit einer Speichergröße. 
+Eine gesamte Datendatei wird im pickel Format abgesepichert.
+Für Ansichten der gesamten Simulationdaten in einem Zeitraum, sind Dashboard erstellt.
+anzeige_leistung_soc.py zeigt die Jahresleistung auf und dazu die SOC-Verläufe.
+vergleichende_Übersicht.py sellt Kenngößen und Daten in Tabellen auf einem Dashboard dar.
+Vorraussetzungen: Python 3.11 und die requirements.txt beachten
+Daten sind für das Jahr 2021 enthalten, die Ergebnisse sollten alle bei einen ersten Run erstellt werden, dazu alle nötigen Variabeln auf True setzen.

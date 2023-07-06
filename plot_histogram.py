@@ -3,15 +3,13 @@ import math
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-
+import os
 
 def plot_histogram_sns(df, startday, endday, size, binsize=25):
-    # set dpi globally
-
+    # set dpi globally to make printed plot nice
     sns.set(rc={'figure.figsize': (15, 10)})
-    sns.set(rc={'savefig.dpi': 500})
+    sns.set(rc={'savefig.dpi': 200})
     sns.set(rc={'font.size': 20})
-
 
     assert startday < endday
     # This line sets the date to the start day of the data frame in the format of year-month-day
@@ -33,34 +31,51 @@ def plot_histogram_sns(df, startday, endday, size, binsize=25):
     leistung_eigenverbrauch = einspeisung_eigen.mul(-1) + netzbezug_eigen
     leistung_netz = einspeisung_netz.mul(-1) + netzbezug_netz
 
-
     # Make a multiple-histogram of data-sets with different length.
     # x_multi = [leistung_pure, leistung_eigenverbrauch, leistung_netz]
-    # colors = ['green', 'blue', 'orange']
-    labels = ['ohne Speicher', 'Speicher eigenverbrauch', 'Speicher netzdienlich']
+    colors = ['green', 'blue', 'orange']
+    labels = ['ohne Speicher', 'Speicher Eigenverbrauch', 'Speicher netzdienlich']
+    alpha = 0.5
 
     sns.set_style('whitegrid')
     ax = sns.displot(data=pd.DataFrame({labels[0]: leistung_pure,
-                                   labels[1]: leistung_eigenverbrauch,
-                                   labels[2]: leistung_netz}),
-                kde=True,
-                rug=True,
-                legend=True,
-                element="step",
-                fill=False)
-    sns.move_legend(ax, "upper right", bbox_to_anchor=(1.2, .8),  frameon=False)
-# Increase tick label size
-    plt.tick_params(axis='both', labelsize=20)
-    plt.title(f'Verteilung von Leistungen am {date}')
-    plt.xlabel('Leistung in Wh', fontsize=16)
-    plt.ylabel('Häufigkeit', fontsize=16)
-    plt.tight_layout()
-    plt.savefig(f'graphs/Histogramm_{date}.png', bbox_inches='tight')
-    # Add legend outside the plot
-    # plt.legend(loc='upper right')
+                                        labels[1]: leistung_eigenverbrauch,
+                                        labels[2]: leistung_netz}),
+                     kde=True,
+                     rug=True,
+                     legend=True,
+                     element="step",
+                     fill=False,
+                     palette=colors,
+                     #alpha=alpha
+                     )
+    #configure legend
+    sns.move_legend(ax, "upper right",
+                    bbox_to_anchor=(1, 0.9),
+                    frameon=False,
+                    fontsize=10,
+                    )
+    # Set the plot title using matplotlib
+    plt.title(f'Verteilung von Leistungen \n am {date} mit einem {size / 1000}kWh', fontsize=16)
+
+    # Increase tick label size
+    ax.set(# title=f'Verteilung von Leistungen am {date} mit einem {size / 1000}kWh',
+           xlabel='Leistung in Wh',
+           ylabel='Häufigkeit',
+           )
+    ax.set_xticklabels(fontsize=13)
+    ax.set_yticklabels(fontsize=13)
+    ax.set_titles(fontsize=18)
+    ax.tick_params(axis='both', labelsize=16)
+    ax.tight_layout()
+    # Create "graphs" folder if it doesn't exist
+    os.makedirs('graphs_his', exist_ok=True)
+    # save plot
+    ax.savefig(f'graphs_his/Histogramm_{date}_{size / 1000}kWh.png',
+                # bbox_inches='tight',
+                dpi=300,
+                )
     plt.show()
-    # Save the Plot as png
-    # fig.savefig(f'graphs/Histogramm_{date}.png')
 
 
 def plot_histogram(df, startday, endday, size, binsize=25):
@@ -84,9 +99,10 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
 	:param size: batterysize in Wh
 	:param binsize: size of value which are group together
 	"""
+    '''
     assert startday < endday
 
-	# This line sets the date to the start day of the data frame in the format of year-month-day
+    # This line sets the date to the start day of the data frame in the format of year-month-day
     date = df.index[startday * 1440].strftime('%Y-%m-%d')
 
     density = False  # This line sets the density of the histogram to be false.
@@ -158,4 +174,5 @@ A red vertical line is plotted at the zero net power flow value, and a legend is
     plt.show()
 
     # Save the Plot as png
-    fig.savefig(f'graphs/Histogramm_{date}.png')
+    fig.savefig(f'graphs/Histogramm_{date},{size / 1000}kWh.png')
+    '''
